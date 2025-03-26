@@ -116,8 +116,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     print(sys.argv)
-    # child_name = sys.argv[1]
-    # character = sys.argv[2]
-    # amount_of_tries = int(sys.argv[3]) if len(sys.argv) > 3 else 25
-
-    # record_audio(child_name, character, amount_of_tries)
+    child_name = sys.argv[1]
+    character = sys.argv[2]
+    amount_of_tries = int(sys.argv[3]) if len(sys.argv) > 3 else 25
+    record_audio(child_name, character, amount_of_tries)

@@ -8,3 +8,4 @@ protobuf
 python-multipart
 soundfile
 sounddevice
+Levenshtein
