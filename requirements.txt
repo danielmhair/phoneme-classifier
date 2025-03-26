@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+transformers
+torchaudio
+torch
+phonemizer
+protobuf
+python-multipart
+soundfile
+sounddevice

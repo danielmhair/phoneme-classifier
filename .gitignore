@@ -1,0 +1,8 @@
+*/__pycache__
+*/tmpmodel
+*/.env
+.env
+recorded_audio.wav
+temp_audio.wav
+.venv
+mfa_env
