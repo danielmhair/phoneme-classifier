@@ -3,7 +3,7 @@ import sys
 import sounddevice as sd
 import soundfile as sf
 import requests
-import Levenshtein
+from phonemes import phoneme_similarity_groups
 from datetime import datetime
 
 # Audio settings
@@ -58,8 +58,9 @@ char_to_phoneme = {
     "ar": ("ɑː", "Say 'ar' as in car, mouth wide open.")
 }
 
-def record_audio(child_name, character, amount_of_tries=25):
-    output_dir = os.path.join(child_name, character)
+
+def record_audio(child_name, character, amount_to_do=25, amount_to_retry=2):
+    output_dir = os.path.join("data", child_name, character)
     os.makedirs(output_dir, exist_ok=True)
 
     phoneme_info = char_to_phoneme.get(character)
@@ -68,15 +69,10 @@ def record_audio(child_name, character, amount_of_tries=25):
         return
 
     expected_phoneme, explanation = phoneme_info
+    print(f"Pronunciation guide: {explanation}")
 
-    for attempt in range(1, amount_of_tries + 1):
-        best_distance = float('inf')
-        best_phoneme = ""
-        best_audio = None
-
-        print(f"Pronunciation guide: {explanation}")
-
-        for retry in range(1, 4):
+    for attempt in range(1, amount_to_do + 1):
+        for retry in range(1, amount_to_retry + 1):
             input(f"Press Enter to record attempt {attempt}, retry {retry}/3 for '{character}'...")
 
             audio = sd.rec(int(duration * sampling_rate), samplerate=sampling_rate, channels=1)
@@ -89,28 +85,32 @@ def record_audio(child_name, character, amount_of_tries=25):
                 response = requests.post(model_url, files={"audio": audio_file})
                 actual_phoneme = response.json().get("phonemes", "")
 
-            distance = Levenshtein.distance(actual_phoneme, expected_phoneme)
+            print(f"Actual phoneme: {actual_phoneme}, Expected phoneme: {expected_phoneme}")
+            expected_phoneme_group = phoneme_similarity_groups.get(expected_phoneme, [expected_phoneme])
+            expected_character_group = phoneme_similarity_groups.get(character, [character])
+
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            file_name = f"{actual_phoneme or 'empty'}_{timestamp}_try{retry}.wav"
+            file_name = f"{child_name}_{character}_ap-{actual_phoneme or '-'}_ep-{expected_phoneme or '-'}_{timestamp}_{retry}.wav"
             file_save_location = os.path.join(output_dir, file_name)
 
             os.rename(temp_filename, file_save_location)
-            print(f"Saved retry {retry}: {file_save_location} (Edit distance: {distance})")
+            print(f"Saved {retry}: {file_save_location}")
 
-            if actual_phoneme and distance < best_distance:
-                best_distance = distance
-                best_phoneme = actual_phoneme
-                best_audio = file_save_location
+            if actual_phoneme in expected_phoneme_group or actual_phoneme in expected_character_group or actual_phoneme == expected_phoneme or actual_phoneme == character:
+                print(f"✅ Great pronunciation! ({actual_phoneme})")
+                # Save as success
+                continue
+            elif any(actual_phoneme in group for group in [expected_phoneme_group, expected_character_group]):
+                print(f"✅ Good pronunciation, but try to only say that sound. ({actual_phoneme})")
+            else:
+                print(f"⚠️ Try again, that's '{actual_phoneme}' instead of '{expected_phoneme}'.")
+                # Prompt retry
 
-            if best_distance <= 1:
-                break  # Acceptable pronunciation found
+            print(f"Retrying {retry} for '{character}'...")
 
-        if best_phoneme:
-            print(f"Best pronunciation for attempt {attempt}: {best_audio} (Phoneme: {best_phoneme}, Distance: {best_distance})")
-        else:
-            print(f"No suitable pronunciation found for attempt {attempt}, moving on...")
 
 if __name__ == "__main__":
+    sys.argv = [sys.argv[0], "chloe", "a", "25", "2"]
     if len(sys.argv) < 3:
         print("Usage: python main.py <child_name> <character> [amount_of_tries]")
         sys.exit(1)
@@ -118,5 +118,6 @@ if __name__ == "__main__":
     print(sys.argv)
     child_name = sys.argv[1]
     character = sys.argv[2]
-    amount_of_tries = int(sys.argv[3]) if len(sys.argv) > 3 else 25
-    record_audio(child_name, character, amount_of_tries)
+    amount_to_do = int(sys.argv[3]) if len(sys.argv) > 3 else 25
+    amount_of_tries = int(sys.argv[4]) if len(sys.argv) > 4 else 2
+    record_audio(child_name, character, amount_to_do, amount_of_tries)
