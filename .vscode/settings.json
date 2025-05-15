@@ -1,3 +1,4 @@
 {
+    "python.defaultInterpreterPath": "/home/danie/miniconda3/bin/python",
     "cmake.ignoreCMakeListsMissing": true
 }

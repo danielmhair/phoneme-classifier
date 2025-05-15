@@ -16,7 +16,7 @@ class Wav2Vec2EmbeddingWrapper(nn.Module):
         return output.last_hidden_state.mean(dim=1)
 
 # === Load audio sample ===
-audio, sr = sf.read("recordings_t_loud/dan/sh/dan_sh_ep-ʃ_20250329_100822_5.wav")
+audio, sr = sf.read("recordings/dan/sh/dan_sh_ep-ʃ_20250329_100822_5.wav")
 if len(audio.shape) > 1:
     audio = np.mean(audio, axis=1)
 if sr != 16000:

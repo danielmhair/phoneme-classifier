@@ -10,9 +10,22 @@ from transformers import Wav2Vec2Processor, Wav2Vec2Model
 # Set paths
 PHONEME_CLIPS_DIR = Path("organized_recordings")
 EMBEDDINGS_OUTPUT_DIR = Path("phoneme_embeddings")
-EMBEDDINGS_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 def extract_embeddings_for_phonemes():
+    if not PHONEME_CLIPS_DIR.exists():
+        print(f"Error: {PHONEME_CLIPS_DIR} does not exist. Be sure to run w1_prepare_wav_files, but should run with 0_workflow.py")
+        return
+    # Clean previous embeddings
+    if EMBEDDINGS_OUTPUT_DIR.exists():
+        for item in EMBEDDINGS_OUTPUT_DIR.iterdir():
+            if item.is_file():
+                item.unlink()
+            else:
+                os.rmdir(item)
+        EMBEDDINGS_OUTPUT_DIR.rmdir()
+    EMBEDDINGS_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"✅ Created directory {EMBEDDINGS_OUTPUT_DIR} for saving embeddings.")
+
     # Load Wav2Vec2 processor and model
     processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
     model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base")

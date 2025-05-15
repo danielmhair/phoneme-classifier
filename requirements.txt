@@ -48,3 +48,21 @@ transformers
 scikit-learn
 sounddevice
 librosa
+datasets[audio]
+
+# Installed https://github.com/P1ayer-1/Libtorch-UE5 
+# Went to: https://pytorch.org/get-started/locally/
+# Downloaded LibTorch/Windows/CPU => Release zip - https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.6.0%2Bcpu.zip
+
+# Install https://github.com/P1ayer-1/Tokenizers-UE5
+
+torch
+transformers
+onnx
+onnxruntime
+resampy
+matplotlib
+seaborn
+umap-learn
+scikit-learn
+umap

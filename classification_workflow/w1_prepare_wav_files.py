@@ -4,11 +4,35 @@ import csv
 from pathlib import Path
 
 # Set source and target directories
-SOURCE_DIR = Path("recordings_t_loud")
+SOURCE_DIR = Path("recordings")
 TARGET_DIR = Path("organized_recordings")
 TARGET_DIR.mkdir(parents=True, exist_ok=True)
 
+import numpy as np
+import soundfile as sf
+
+def trim_and_normalize(audio, threshold=0.01, buffer=1000):
+    nonzero_indices = np.where(np.abs(audio) > threshold)[0]
+    if len(nonzero_indices) == 0:
+        return None
+    start = max(0, nonzero_indices[0] - buffer)
+    end = min(len(audio), nonzero_indices[-1] + buffer)
+    trimmed = audio[start:end]
+    max_amp = np.max(np.abs(trimmed))
+    return trimmed / max_amp if max_amp > 0 else trimmed
+
 def prepare_wav_files():
+    if not SOURCE_DIR.exists():
+        print(f"Error: {SOURCE_DIR} does not exist. You must have that folder to begin.")
+        return
+
+    if TARGET_DIR.exists():
+        shutil.rmtree(TARGET_DIR)
+        print(f"✅ Cleaned previous recordings in {TARGET_DIR}.")
+    
+    TARGET_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"✅ Created directory {TARGET_DIR} for saving organized recordings.")
+    
     # Prepare metadata list
     metadata = []
 
@@ -32,8 +56,19 @@ def prepare_wav_files():
                         new_filename = f"{child_name}_{phoneme}_{counter:03d}.wav"
                         target_path = target_subdir / new_filename
                         
-                        # Copy the file to the new location
-                        shutil.copy2(wav_file, target_path)
+                        # Load and process the audio
+                        audio, sr = sf.read(str(wav_file))
+                        if sr != 16000:
+                            print(f"⚠️ Skipping {wav_file.name}: expected 16kHz sample rate, got {sr}")
+                            continue
+
+                        processed = trim_and_normalize(audio)
+                        if processed is None or len(processed) < 1000:
+                            print(f"⚠️ Skipping {wav_file.name}: silent or too short after trimming.")
+                            continue
+
+                        # Save the cleaned audio to the target location
+                        sf.write(str(target_path), processed, samplerate=sr)
                         
                         # Record metadata: new filename, child name, phoneme, original path
                         metadata.append([new_filename, child_name, phoneme, str(wav_file)])

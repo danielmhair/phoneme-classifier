@@ -6,11 +6,12 @@ recorded_audio.wav
 temp_audio.wav
 .venv
 mfa_env
-recordings*/
+/*recordings*/
 multi_phoneme
 src/models
 **/wav2vec2-base*
 **/wav2vec2-finetuned*
 phoneme_embeddings
 data
-src/wav2vec2_traced_mean.pt
+src/*.pt
+src/*.onnx
