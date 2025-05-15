@@ -66,3 +66,4 @@ seaborn
 umap-learn
 scikit-learn
 umap
+pronouncing
