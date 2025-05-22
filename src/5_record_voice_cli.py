@@ -58,9 +58,9 @@ def main():
     model.eval()
     
     # Load the trained classifier and label encoder
-    with open("phoneme_classifier.pkl", "rb") as f:
+    with open("dist/phoneme_classifier.pkl", "rb") as f:
         clf = pickle.load(f)
-    with open("label_encoder.pkl", "rb") as f:
+    with open("dist/label_encoder.pkl", "rb") as f:
         le = pickle.load(f)
     
     while True:

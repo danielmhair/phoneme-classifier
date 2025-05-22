@@ -1,3 +1,4 @@
+import os
 import torch
 from transformers import Wav2Vec2Processor, Wav2Vec2Model
 
@@ -20,7 +21,7 @@ def onnx_export():
     pooled_w2v = Wav2Vec2Pooled(base_w2v)
 
     # 3️⃣ Load your traced MLP (expects [1 × H])
-    mlp = torch.jit.load("src/phoneme_clf_traced.pt").eval()
+    mlp = torch.jit.load("dist/phoneme_clf_traced.pt").eval()
 
     # 4️⃣ Create a dummy 2s audio vector → run through pooled_w2v to get dummy_emb
     dummy_audio = torch.randn(1, 16000 * 2, dtype=torch.float32)  # [1, T]
@@ -31,7 +32,7 @@ def onnx_export():
     torch.onnx.export(
         pooled_w2v,
         (dummy_audio,),
-        "src/wav2vec2.onnx",
+        "dist/wav2vec2.onnx",
         input_names=["audio"],
         output_names=["embedding"],
         dynamic_axes={
@@ -45,7 +46,7 @@ def onnx_export():
     torch.onnx.export(
         mlp,
         (dummy_emb,),
-        "src/phoneme_mlp.onnx",
+        "dist/phoneme_mlp.onnx",
         input_names=["embedding"],
         output_names=["phoneme_probs"],
         dynamic_axes={
@@ -55,4 +56,8 @@ def onnx_export():
         opset_version=14,
     )
 
+    # After exporting ONNX models
+    missing_files = [file for file in ["phoneme_mlp.onnx", "wav2vec2.onnx"] if not os.path.exists(file)]
+    if len(missing_files) > 0:
+        raise FileNotFoundError("❌ Failed to save: " + ", ".join(missing_files))
     print("✅ Exported wav2vec2.onnx (pooled) and phoneme_mlp.onnx")

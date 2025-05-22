@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 import torch
@@ -32,10 +33,11 @@ def batch_test_phonemes():
     model.eval()
     
     # Load the trained classifier and label encoder
-    with open("phoneme_classifier.pkl", "rb") as f:
+    with open("dist/phoneme_classifier.pkl", "rb") as f:
         clf = pickle.load(f)
-    with open("label_encoder.pkl", "rb") as f:
+    with open("dist/label_encoder.pkl", "rb") as f:
         le = pickle.load(f)
+
     
     # Iterate over all WAV files in the folder (recursively)
     wav_files = list(folder_path.glob("**/*.wav"))
@@ -43,8 +45,19 @@ def batch_test_phonemes():
         print(f"No WAV files found in {folder_path}")
         sys.exit(0)
     
-    print(f"Found {len(wav_files)} WAV files. Processing...")
+    print(f"Found {len(wav_files)} WAV files. Testing...")
     
+    with open("dist/phoneme_labels.json", "r") as f:
+        phoneme_labels = json.load(f)
+    
+    matching_labels = list(le.classes_) == phoneme_labels
+    if not matching_labels:
+        raise Exception("❌ LabelEncoder mismatch! Make sure phoneme_labels.json matches the training labels.")
+
+    phoneme_counts = {phoneme: 0 for phoneme in phoneme_labels}
+    total_counts = {phoneme: 0 for phoneme in phoneme_labels}
+
+    i = 0
     for wav_file in wav_files:
         try:
             audio = load_audio(str(wav_file))
@@ -62,13 +75,23 @@ def batch_test_phonemes():
         predicted_phoneme = le.inverse_transform(pred)[0]
         
         # Print the result for the file
-        print(f"File: {wav_file}")
-        print(f"  Predicted phoneme: {predicted_phoneme}")
-        print("  Prediction probabilities:")
-        for label, prob in zip(le.classes_, pred_prob):
-            print(f"    {label}: {prob:.2f}")
-        print("-" * 40)
-    
+        expected_phoneme = wav_file.parent.name
+        total_counts[expected_phoneme] += 1
+        if str(predicted_phoneme) not in phoneme_counts:
+            phoneme_counts[str(predicted_phoneme)] = 0
+        if expected_phoneme == str(predicted_phoneme):
+            phoneme_counts[str(predicted_phoneme)] += 1
+        if (i % 500 == 0):
+            print(f"Tested {i}/{len(wav_files)} files ({i/len(wav_files) * 100:.2f}%)...")
+        i += 1
+
+    print("\nFinished Tests!\nPhoneme counts:")
+    for phoneme in phoneme_labels:
+        correct = phoneme_counts.get(phoneme, 0)
+        total = total_counts.get(phoneme, 0)
+        acc = (correct / total) * 100 if total > 0 else 0
+        print(f"  {phoneme}: {correct}/{total} - {acc:.2f}%")
+
 if __name__ == "__main__":
     batch_test_phonemes()
 

@@ -15,3 +15,5 @@ phoneme_embeddings
 data
 src/*.pt
 src/*.onnx
+logs
+**/dist

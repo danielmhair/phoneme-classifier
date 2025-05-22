@@ -36,7 +36,7 @@ def plot_confusion_matrix(y_true, y_pred, label_encoder):
     cm = confusion_matrix(y_true, y_pred)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=label_encoder.classes_)
     fig, ax = plt.subplots(figsize=(12, 12))
-    disp.plot(ax=ax, xticks_rotation=45, cmap="Blues")
+    disp.plot(ax=ax, xticks_rotation=45, cmap="Blues") # type:ignore
     plt.title("Confusion Matrix")
     plt.tight_layout()
     plt.show()
@@ -73,9 +73,9 @@ def plot_tsne_umap(X, y, label_encoder):
 
 def visualize_results():
     # Load classifier & encoder
-    with open("phoneme_classifier.pkl", "rb") as f:
+    with open("dist/phoneme_classifier.pkl", "rb") as f:
         clf = pickle.load(f)
-    with open("label_encoder.pkl", "rb") as f:
+    with open("dist/label_encoder.pkl", "rb") as f:
         le = pickle.load(f)
 
     # Load data

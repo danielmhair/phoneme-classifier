@@ -1,3 +1,4 @@
+import os
 import time
 import torch
 import numpy as np
@@ -48,7 +49,7 @@ def benchmark(model_instance, label="Base", use_padding=True, save=False, warmup
     print(f"⏱️ Average Inference Time: {avg_time:.4f} seconds")
     if save:
         print("🔒 Saving traced model...")
-        model_instance.save("wav2vec2_traced_mean.pt")
+        model_instance.save("dist/wav2vec2_traced_mean.pt")
 
 def benchmark_and_save():
     # Base model benchmarks
@@ -72,6 +73,10 @@ def benchmark_and_save():
     except Exception as e:
         print(f"⚠️ Torch Compile failed: {e}")
         raise e
+    
+    # Verify files created
+    if not os.path.exists("dist/wav2vec2_traced_mean.pt"):
+        raise FileNotFoundError("❌ Failed to save src/wav2vec2_traced_mean.pt!")
 
 # === Main ===
 if __name__ == "__main__":

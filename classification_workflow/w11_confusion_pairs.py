@@ -28,9 +28,9 @@ def load_embeddings_and_labels():
 
 def analyze_confusion():
     # Load models
-    with open("phoneme_classifier.pkl", "rb") as f:
+    with open("dist/phoneme_classifier.pkl", "rb") as f:
         clf = pickle.load(f)
-    with open("label_encoder.pkl", "rb") as f:
+    with open("dist/label_encoder.pkl", "rb") as f:
         le = pickle.load(f)
 
     X, labels = load_embeddings_and_labels()
@@ -62,7 +62,7 @@ def analyze_confusion():
     print("⚠️ Phonemes with Lowest Precision (under 0.75):")
     for label in class_labels:
         if label in report and isinstance(report[label], dict):
-            precision = report[label].get("precision", 1.0)
+            precision = report[label].get("precision", 1.0) # type:ignore
             if precision < 0.75:
                 print(f"  - {label}: precision = {precision:.2f}")
 

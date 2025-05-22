@@ -1,6 +1,8 @@
+import json
 import os
 import csv
 from pathlib import Path
+from collections import Counter
 
 import torch
 import soundfile as sf
@@ -37,7 +39,12 @@ def extract_embeddings_for_phonemes():
     phoneme_dirs = list(PHONEME_CLIPS_DIR.iterdir())
     print(f"Found {len(phoneme_dirs)} subdirectories in {PHONEME_CLIPS_DIR}")
 
-    # Loop through each phoneme directory
+    phoneme_labels = sorted([d.name for d in phoneme_dirs if d.is_dir()])
+    with open("dist/phoneme_labels.json", "w") as f:
+        json.dump(phoneme_labels, f)
+    print(f"✅ Saved phoneme label order to dist/phoneme_labels.json with {len(phoneme_labels)} labels.")
+
+    # Loop thr  ough each phoneme directory
     for phoneme_dir in sorted(PHONEME_CLIPS_DIR.iterdir()):
         if not phoneme_dir.is_dir():
             continue
@@ -81,6 +88,8 @@ def extract_embeddings_for_phonemes():
         writer.writerows(metadata)
 
     print(f"✅ Done! Extracted embeddings for {len(metadata)} phoneme clips.")
+    phoneme_counts = Counter([row[1] for row in metadata])
+    print("Phoneme counts in metadata:", phoneme_counts)
 
 
 if __name__ == "__main__":

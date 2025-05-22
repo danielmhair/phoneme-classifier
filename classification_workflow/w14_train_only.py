@@ -44,9 +44,9 @@ def train_only():
     clf = MLPClassifier(hidden_layer_sizes=(128, 64), max_iter=500, random_state=42)
     clf.fit(X_train, y_train)
 
-    with open("phoneme_classifier.pkl", "wb") as f:
+    with open("dist/phoneme_classifier.pkl", "wb") as f:
         pickle.dump(clf, f)
-    with open("label_encoder.pkl", "wb") as f:
+    with open("dist/label_encoder.pkl", "wb") as f:
         pickle.dump(le, f)
 
     print("✅ Classifier retrained and saved without evaluation.")

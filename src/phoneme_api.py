@@ -20,13 +20,13 @@ app = FastAPI()
 # ✅ Load processor
 processor = Wav2Vec2Processor.from_pretrained("./wav2vec2-base")
 # ✅ Load the TorchScript model (which is already traced + mean pooled)
-model = torch.jit.load("./wav2vec2_traced_mean.pt")
+model = torch.jit.load("./src/wav2vec2_traced_mean.pt")
 model.eval()
 
-with open("phoneme_classifier.pkl", "rb") as f:
+with open("dist/phoneme_classifier.pkl", "rb") as f:
     clf = pickle.load(f)
 
-with open("label_encoder.pkl", "rb") as f:
+with open("dist/label_encoder.pkl", "rb") as f:
     le = pickle.load(f)
 
 MIN_AMP_THRESHOLD = 0.01

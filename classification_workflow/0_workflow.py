@@ -1,3 +1,35 @@
+from pathlib import Path
+import sys
+import os
+import time
+from datetime import datetime
+
+class Logger:
+    def __init__(self, log_path):
+        self.terminal = sys.__stdout__  # Preserve original terminal
+        self.log = open(log_path, "w", encoding="utf-8")
+
+    def write(self, message):
+        self.terminal.write(message) # type: ignore
+        self.log.write(message)
+
+    def flush(self):
+        self.terminal.flush() # type: ignore
+        self.log.flush()
+
+# Create logs/ directory if it doesn't exist
+os.makedirs("logs", exist_ok=True)
+
+# Create a timestamped log file
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+start_time = time.time()
+log_file_path = f"logs/workflow_log_{timestamp}.txt"
+
+# Redirect stdout and stderr to both terminal and log file
+sys.stdout = Logger(log_file_path)
+sys.stderr = sys.stdout
+
+from w0_cleanup import cleanup
 from w1_prepare_wav_files import prepare_wav_files
 from w2_extract_embeddings_for_phonemes import extract_embeddings_for_phonemes
 from w3_embeddings import embeddings
@@ -10,40 +42,37 @@ from w10_visualize_results import visualize_results
 from w11_confusion_pairs import analyze_confusion
 
 def main():
-    print("🏁 Prepare the dataset 🏁")
-    prepare_wav_files()
+    print(f"🕐 Workflow started at: {timestamp}\n")
 
-    print("🏁 Extract embeddings for phonemes 🏁")
-    extract_embeddings_for_phonemes()
+    steps = [
+        ("Cleanup previous runs", cleanup),
+        ("Prepare the dataset", prepare_wav_files),
+        ("Extract embeddings for phonemes", extract_embeddings_for_phonemes),
+        ("Extract embeddings", embeddings),
+        ("Batch test phonemes", batch_test_phonemes),
+        ("Benchmark inference and save", benchmark_and_save),
+        ("Trace MLP classifier", trace_mlp_classifier),
+        ("Visualize Results", visualize_results),
+        ("Export to ONNX", onnx_export),
+        ("Test ONNX model", onnx_test),
+        ("Analyze confusion matrix", analyze_confusion),
+    ]
 
-    print("🏁 Extract embeddings 🏁")
-    embeddings()
+    DIST_DIR = Path("dist")
+    DIST_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("🏁 Batch test phonemes 🏁")
-    batch_test_phonemes()
+    for label, func in steps:
+        print(f"\n🚀 Starting: {label}...")
+        step_start = time.time()
+        func()
+        step_end = time.time()
+        duration = step_end - step_start
+        print(f"✅ Finished: {label} in {duration:.2f} seconds\n")
 
-    input("Test the phoneme in another command line with w5_record_voice_cli.py. Press Enter to continue...")
-
-
-    print("🏁 Benchmark inference and save 🏁")
-    benchmark_and_save()
-
-    print("🏁 Trace MLP classifier 🏁")
-    trace_mlp_classifier()
-
-    print("🏁 Visualize Results 🏁")
-    visualize_results()
-
-    print("🏁 Export to ONNX 🏁")
-    onnx_export()
-
-    print("🏁 Test ONNX model 🏁")
-    onnx_test()
-
-    print("🏁 Analyze confusion matrix 🏁")
-    analyze_confusion()
-
-    print("🏁 All steps completed successfully. 🏁")
+    total_time = time.time() - start_time
+    print("\n\n🏁 All steps completed successfully. 🏁")
+    print("You can test phonemes through the command line with w5_record_voice_cli.py")
+    print(f"✅✅ Workflow complete! Total time: {total_time:.2f} seconds ✅✅")
 
 if __name__ == "__main__":
     main()

@@ -4,12 +4,12 @@ import onnxruntime as ort
 
 def onnx_test():
     # Load your TorchScript MLP and wav2vec2
-    wav2vec = torch.jit.load("src/wav2vec2_traced_mean.pt").eval()
-    mlp = torch.jit.load("src/phoneme_clf_traced.pt").eval()
+    wav2vec = torch.jit.load("dist/wav2vec2_traced_mean.pt").eval()
+    mlp = torch.jit.load("dist/phoneme_clf_traced.pt").eval()
 
     # Create ONNX Runtime sessions
-    sess_w2v = ort.InferenceSession("src/wav2vec2.onnx")
-    sess_mlp = ort.InferenceSession("src/phoneme_mlp.onnx")
+    sess_w2v = ort.InferenceSession("dist/wav2vec2.onnx")
+    sess_mlp = ort.InferenceSession("dist/phoneme_mlp.onnx")
 
     def to_onx(audio: np.ndarray):
         # run wav2vec2 → embedding

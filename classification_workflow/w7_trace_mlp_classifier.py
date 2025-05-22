@@ -1,11 +1,10 @@
-from os.path import dirname
 import torch
 import pickle
 import os
 
 def trace_mlp_classifier():
     # Load your trained MLP classifier
-    full_path = "src/phoneme_classifier.pkl"
+    full_path = "dist/phoneme_classifier.pkl"
     with open(full_path, "rb") as f:
         sk_clf = pickle.load(f)
 
@@ -38,8 +37,11 @@ def trace_mlp_classifier():
     pt_clf = SklearnMLPWrapper(sk_clf).eval()
     dummy_emb = torch.randn(1, sk_clf.coefs_[0].shape[0])
     traced_clf = torch.jit.trace(pt_clf, dummy_emb)
-    traced_clf.save("src/phoneme_clf_traced.pt")
+    traced_clf.save("dist/phoneme_clf_traced.pt") # type: ignore
     print("Saved!")
+    if not os.path.exists("dist/phoneme_clf_traced.pt"):
+        raise FileNotFoundError("❌ Failed to save src/phoneme_clf_traced.pt!")
+    print("✅ Saved traced classifier!")
 
 if __name__ == "__main__":
     trace_mlp_classifier()

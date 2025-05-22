@@ -1,3 +1,5 @@
+import os
+import pickle
 import csv
 import numpy as np
 from pathlib import Path
@@ -71,15 +73,17 @@ def embeddings():
     print(report)
 
     # Save the trained classifier and label encoder
-    import pickle
-
-    with open("phoneme_classifier.pkl", "wb") as f:
+    with open("dist/phoneme_classifier.pkl", "wb") as f:
         pickle.dump(clf, f)
 
-    with open("label_encoder.pkl", "wb") as f:
+    with open("dist/label_encoder.pkl", "wb") as f:
         pickle.dump(le, f)
 
-    print("Classifier and label encoder saved.")
+    # Check that files exist
+    missing_files = [f for f in ["dist/phoneme_classifier.pkl", "dist/label_encoder.pkl"] if not os.path.exists(f)]
+    if len(missing_files) > 0:
+        raise Exception("❌ Failed to save: " + ", ".join(missing_files))
+    print("✅ Classifier and label encoder saved.")
     print("✅ Embedding extraction and classification complete!")
 
 if __name__ == "__main__":
