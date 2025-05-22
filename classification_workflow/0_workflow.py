@@ -40,22 +40,24 @@ from w8_onnx_export import onnx_export
 from w9_onnx_test import onnx_test
 from w10_visualize_results import visualize_results
 from w11_confusion_pairs import analyze_confusion
+from w12_overwrite_onnx_unreal import overwrite_onnx_unreal
 
 def main():
     print(f"🕐 Workflow started at: {timestamp}\n")
 
     steps = [
-        ("Cleanup previous runs", cleanup),
-        ("Prepare the dataset", prepare_wav_files),
-        ("Extract embeddings for phonemes", extract_embeddings_for_phonemes),
-        ("Extract embeddings", embeddings),
-        ("Batch test phonemes", batch_test_phonemes),
-        ("Benchmark inference and save", benchmark_and_save),
-        ("Trace MLP classifier", trace_mlp_classifier),
-        ("Visualize Results", visualize_results),
-        ("Export to ONNX", onnx_export),
+        # ("Cleanup previous runs", cleanup),
+        # ("Prepare the dataset", prepare_wav_files),
+        # ("Extract embeddings for phonemes", extract_embeddings_for_phonemes),
+        # ("Extract embeddings", embeddings),
+        # ("Batch test phonemes", batch_test_phonemes),
+        # ("Benchmark inference and save", benchmark_and_save),
+        # ("Trace MLP classifier", trace_mlp_classifier),
+        # ("Visualize Results", visualize_results),
+        # ("Export to ONNX", onnx_export),
         ("Test ONNX model", onnx_test),
         ("Analyze confusion matrix", analyze_confusion),
+        ("Copy to Unreal Engine", overwrite_onnx_unreal)
     ]
 
     DIST_DIR = Path("dist")

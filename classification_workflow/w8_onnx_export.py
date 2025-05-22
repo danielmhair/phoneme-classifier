@@ -57,7 +57,7 @@ def onnx_export():
     )
 
     # After exporting ONNX models
-    missing_files = [file for file in ["phoneme_mlp.onnx", "wav2vec2.onnx"] if not os.path.exists(file)]
+    missing_files = [file for file in ["dist/phoneme_mlp.onnx", "dist/wav2vec2.onnx"] if not os.path.exists(file)]
     if len(missing_files) > 0:
         raise FileNotFoundError("❌ Failed to save: " + ", ".join(missing_files))
     print("✅ Exported wav2vec2.onnx (pooled) and phoneme_mlp.onnx")
