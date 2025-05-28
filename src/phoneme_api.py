@@ -20,7 +20,7 @@ app = FastAPI()
 # ✅ Load processor
 processor = Wav2Vec2Processor.from_pretrained("./wav2vec2-base")
 # ✅ Load the TorchScript model (which is already traced + mean pooled)
-model = torch.jit.load("./src/wav2vec2_traced_mean.pt")
+model = torch.jit.load("./dist/wav2vec2_traced_mean.pt")
 model.eval()
 
 with open("dist/phoneme_classifier.pkl", "rb") as f:

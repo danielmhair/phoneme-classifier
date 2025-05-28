@@ -13,7 +13,5 @@ src/models
 **/wav2vec2-finetuned*
 phoneme_embeddings
 data
-src/*.pt
-src/*.onnx
 logs
 **/dist

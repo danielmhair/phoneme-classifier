@@ -67,3 +67,4 @@ umap-learn
 scikit-learn
 umap
 pronouncing
+audiomentations

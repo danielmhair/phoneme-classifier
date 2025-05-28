@@ -6,14 +6,11 @@ from collections import defaultdict
 import csv
 from pathlib import Path
 
-EMBEDDINGS_DIR = Path("phoneme_embeddings")
-METADATA_PATH = EMBEDDINGS_DIR / "metadata.csv"
-
-
-def load_embeddings_and_labels():
+def load_embeddings_and_labels(EMBEDDINGS_DIR: Path):
     embeddings = []
     labels = []
 
+    METADATA_PATH = EMBEDDINGS_DIR / "metadata.csv"
     with open(METADATA_PATH, "r", newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -26,14 +23,15 @@ def load_embeddings_and_labels():
     return np.array(embeddings), np.array(labels)
 
 
-def analyze_confusion():
+def analyze_confusion(classifier_path: str, label_encoder_path: str, embeddings_dir: str):
     # Load models
-    with open("dist/phoneme_classifier.pkl", "rb") as f:
+    with open(classifier_path, "rb") as f:
         clf = pickle.load(f)
-    with open("dist/label_encoder.pkl", "rb") as f:
+
+    with open(label_encoder_path, "rb") as f:
         le = pickle.load(f)
 
-    X, labels = load_embeddings_and_labels()
+    X, labels = load_embeddings_and_labels(Path(embeddings_dir))
     y = le.transform(labels)
 
     X_train, X_test, y_train, y_test = train_test_split(
@@ -65,6 +63,3 @@ def analyze_confusion():
             precision = report[label].get("precision", 1.0) # type:ignore
             if precision < 0.75:
                 print(f"  - {label}: precision = {precision:.2f}")
-
-if __name__ == "__main__":
-    analyze_confusion()

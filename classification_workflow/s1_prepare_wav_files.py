@@ -2,12 +2,7 @@ import os
 import shutil
 import csv
 from pathlib import Path
-
-# Set source and target directories
-SOURCE_DIR = Path("recordings")
-TARGET_DIR = Path("organized_recordings")
-TARGET_DIR.mkdir(parents=True, exist_ok=True)
-
+import argparse
 import numpy as np
 import soundfile as sf
 
@@ -21,12 +16,20 @@ def trim_and_normalize(audio, threshold=0.01, buffer=1000):
     max_amp = np.max(np.abs(trimmed))
     return trimmed / max_amp if max_amp > 0 else trimmed
 
-def prepare_wav_files():
+def clean_previous_recordings(target_dir="organized_recordings"):
+    TARGET_DIR = Path(target_dir)
+    if TARGET_DIR.exists():
+        shutil.rmtree(TARGET_DIR)
+        print(f"✅ Cleaned previous recordings in {TARGET_DIR}.")
+
+def prepare_wav_files(source_dir="recordings", target_dir="organized_recordings", clean=True):
+    SOURCE_DIR = Path(source_dir)
+    TARGET_DIR = Path(target_dir)
+    
     if not SOURCE_DIR.exists():
         print(f"Error: {SOURCE_DIR} does not exist. You must have that folder to begin.")
-        return
-
-    if TARGET_DIR.exists():
+        raise Exception(f"Source directory {SOURCE_DIR} does not exist.")
+    if TARGET_DIR.exists() and clean:
         shutil.rmtree(TARGET_DIR)
         print(f"✅ Cleaned previous recordings in {TARGET_DIR}.")
     
@@ -34,6 +37,7 @@ def prepare_wav_files():
     print(f"✅ Created directory {TARGET_DIR} for saving organized recordings.")
     
     # Prepare metadata list
+    # if clean is true, we want to add to the current metadata.csv file
     metadata = []
 
     # Iterate over child folders in the source directory
@@ -49,7 +53,8 @@ def prepare_wav_files():
                     target_subdir.mkdir(parents=True, exist_ok=True)
                     
                     # Counter for filenames per phoneme per child
-                    counter = 1
+                    counter = len(list(target_subdir.glob(f"{child_name}_{phoneme}_*.wav"))) + 1
+
                     # Iterate over all WAV files in the current phoneme folder
                     for wav_file in phoneme_dir.glob("*.wav"):
                         # Create a new filename: childname_phoneme_counter.wav
@@ -63,7 +68,7 @@ def prepare_wav_files():
                             continue
 
                         processed = trim_and_normalize(audio)
-                        if processed is None or len(processed) < 1000:
+                        if processed is None or len(processed) < 600:
                             print(f"⚠️ Skipping {wav_file.name}: silent or too short after trimming.")
                             continue
 
@@ -75,15 +80,22 @@ def prepare_wav_files():
                         
                         counter += 1
 
+    print(f"✅ Reorganization complete! Files have been organized into '{TARGET_DIR}'.")
+    
+    return metadata
+
+def save_metadata(metadata, TARGET_DIR):
     # Save metadata CSV in the target directory
-    metadata_csv_path = TARGET_DIR / "metadata.csv"
+    metadata_csv_path = Path(TARGET_DIR) / "metadata.csv"
     with open(metadata_csv_path, "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(["new_filename", "child_name", "phoneme", "original_file"])
         writer.writerows(metadata)
-
-    print(f"✅ Reorganization complete! Files have been organized into '{TARGET_DIR}'.")
-    print(f"Metadata CSV saved at: {metadata_csv_path}")
+        print(f"Metadata CSV saved at: {metadata_csv_path}")
 
 if __name__ == "__main__":
-    prepare_wav_files()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--source_dir', type=str, default="recordings", help='Input folder of raw recordings')
+    parser.add_argument('--target_dir', type=str, default="organized_recordings", help='Output folder for organized recordings')
+    args = parser.parse_args()
+    prepare_wav_files(source_dir=args.source_dir, target_dir=args.target_dir)

@@ -1,3 +1,5 @@
+from pathlib import Path
+import json
 import sys
 import sounddevice as sd
 import numpy as np
@@ -11,9 +13,13 @@ BUFFER_SAMPLES = 1000   # Buffer (in samples) before/after detected sound
 DURATION = 1.0          # Record for 1 second
 SAMPLE_RATE = 16000     # Desired sample rate
 
+with open(Path("dist/phoneme_labels.json"), "r", encoding="utf-8") as f:
+    phoneme_labels = json.load(f)
+
 def record_audio(duration=DURATION, fs=SAMPLE_RATE):
     """Record audio for a specified duration."""
     print(f"Recording for {duration} seconds. Please speak now...")
+    print(sd.query_devices())
     audio = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype='float32')
     sd.wait()  # Wait until recording is finished
     return audio.flatten()
@@ -84,11 +90,24 @@ def main_test_with_voice():
         pred_prob = clf.predict_proba(embedding)[0]
         predicted_phoneme = le.inverse_transform(pred)[0]
         
-        print(f"\nPredicted phoneme: {predicted_phoneme}")
-        print("Prediction probabilities:")
-        for label, prob in zip(le.classes_, pred_prob):
-            print(f"  {label}: {prob:.2f}")
         print("-" * 40)
+        print("Prediction probabilities:")
+        print("\n📜 phoneme_labels.json order:")
+        for i, label in enumerate(phoneme_labels):
+            print(f" [{i:02}] {label}")
+        print("-" * 40)
+
+        print("\n🏷️ label_encoder.classes_ order:")
+        for i, label in enumerate(le.classes_):
+            print(f" [{i:02}] {label}")
+
+        print(f"\nPredicted phoneme: {predicted_phoneme}")
+
+        # Optional debug
+        if phoneme_labels != list(le.classes_):
+            print("⚠️ WARNING: Mismatch between phoneme_labels.json and label_encoder.pkl order!")
+        else:
+            print("✅ phoneme_labels.json matches label_encoder.pkl")
 
 if __name__ == "__main__":
     main_test_with_voice()

@@ -76,7 +76,7 @@ def benchmark_and_save():
     
     # Verify files created
     if not os.path.exists("dist/wav2vec2_traced_mean.pt"):
-        raise FileNotFoundError("❌ Failed to save src/wav2vec2_traced_mean.pt!")
+        raise FileNotFoundError("❌ Failed to save dist/wav2vec2_traced_mean.pt!")
 
 # === Main ===
 if __name__ == "__main__":
