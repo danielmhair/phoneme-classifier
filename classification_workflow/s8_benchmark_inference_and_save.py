@@ -16,22 +16,10 @@ class Wav2Vec2EmbeddingWrapper(nn.Module):
         output = self.model(input_values)
         return output.last_hidden_state.mean(dim=1)
 
-# === Load audio sample ===
-audio, sr = sf.read("recordings/dan/sh/dan_sh_ep-ʃ_20250329_100822_5.wav")
-if len(audio.shape) > 1:
-    audio = np.mean(audio, axis=1)
-if sr != 16000:
-    raise ValueError("Audio must be 16kHz mono")
 
-# === Load Processor and Model ===
-processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
-base_model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base")
-base_model.eval()
-
-# === Benchmark runner ===
-def benchmark(model_instance, label="Base", use_padding=True, save=False, warmup=3, runs=10):
+def benchmark(processor, audio, model_instance, label="Base", use_padding=True, save=False, warmup=3, runs=10):
     print(f"\n🧪 Benchmark: {label}")
-    inputs = processor(audio, sampling_rate=16000, return_tensors="pt", padding=use_padding) # type: ignore
+    inputs = processor(audio, sampling_rate=16000, return_tensors="pt", padding=use_padding)
     model_instance.eval()
 
     # Warmup
@@ -52,16 +40,28 @@ def benchmark(model_instance, label="Base", use_padding=True, save=False, warmup
         model_instance.save("dist/wav2vec2_traced_mean.pt")
 
 def benchmark_and_save():
+    # === Load audio sample ===
+    audio, sr = sf.read("recordings/dan/sh/dan_sh_ep-ʃ_20250329_100822_5.wav")
+    if len(audio.shape) > 1:
+        audio = np.mean(audio, axis=1)
+    if sr != 16000:
+        raise ValueError("Audio must be 16kHz mono")
+
+    # === Load Processor and Model ===
+    processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
+    base_model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base")
+    base_model.eval()
+
     # Base model benchmarks
-    benchmark(base_model, "Base Model (with padding)", use_padding=True)
-    benchmark(base_model, "Base Model (no padding)", use_padding=False)
+    benchmark(processor, audio, base_model, "Base Model (with padding)", use_padding=True)
+    benchmark(processor, audio, base_model, "Base Model (no padding)", use_padding=False)
 
     # TorchScript benchmark using wrapped model
     wrapped_model = Wav2Vec2EmbeddingWrapper(base_model)
     try:
         example_input = processor(audio, sampling_rate=16000, return_tensors="pt")["input_values"] # type: ignore
         traced_model = torch.jit.trace(wrapped_model, example_input)
-        benchmark(traced_model, "TorchScript (mean pooled)", use_padding=False, save=True)
+        benchmark(processor, audio, traced_model, "TorchScript (mean pooled)", use_padding=False, save=True)
     except Exception as e:
         print(f"⚠️ TorchScript failed: {e}")
         raise e
@@ -69,7 +69,7 @@ def benchmark_and_save():
     # Torch Compile benchmark
     try:
         compiled_model = torch.compile(wrapped_model, mode="reduce-overhead")
-        benchmark(compiled_model, "Torch Compile (mean pooled)", use_padding=False)
+        benchmark(processor, audio, compiled_model, "Torch Compile (mean pooled)", use_padding=False)
     except Exception as e:
         print(f"⚠️ Torch Compile failed: {e}")
         raise e

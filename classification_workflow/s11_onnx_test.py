@@ -8,8 +8,10 @@ from collections import defaultdict
 def onnx_batch_test():
     # Test both high-quality and low-quality sets
     test_sets = [
-        ("High-quality (organized_recordings)", "dist/organized_recordings"),
-        ("Low-quality (low_quality_recordings)", "dist/low_quality_recordings"),
+        # ("High-quality (organized_recordings)", "dist/organized_recordings"),
+        ("Low-quality (low_quality_recordings)", "recordings_lower_quality"),
+        ("Low-quality (low_quality_recordings)", "recordings_lower_quality_2"),
+        ("Low-quality (low_quality_recordings)", "recordings_lowest_quality_1"),
     ]
 
     # Load ONNX Runtime sessions
@@ -37,6 +39,7 @@ def onnx_batch_test():
         phoneme_counts = {phoneme: 0 for phoneme in phoneme_labels}
         total_counts = {phoneme: 0 for phoneme in phoneme_labels}
         i = 0
+        all_confusion = []
         for wav_file in wav_files:
             try:
                 audio, sr = sf.read(wav_file)
@@ -54,19 +57,24 @@ def onnx_batch_test():
                 "phoneme_probs"], {"embedding": emb}
             )[0]
             pred_idx = int(np.argmax(onnx_probs))
-            print(f"ONNX output shape: {onnx_probs.shape}, pred_idx: {pred_idx}, num labels: {len(phoneme_labels)}")
             if pred_idx < 0 or pred_idx >= len(phoneme_labels):
                 print(f"[ERROR] pred_idx {pred_idx} out of range for phoneme_labels (len={len(phoneme_labels)}). onnx_probs={onnx_probs}")
                 continue
             predicted_phoneme = phoneme_labels[pred_idx]
             expected_phoneme = os.path.basename(os.path.dirname(wav_file))
+            all_confusion.append((expected_phoneme, predicted_phoneme))
+            
+            # If expected_phoneme is not in total_counts, add it (handles unseen/extra phonemes)
+            if expected_phoneme not in total_counts:
+                total_counts[expected_phoneme] = 0
             total_counts[expected_phoneme] += 1
+
             if predicted_phoneme not in phoneme_counts:
                 phoneme_counts[predicted_phoneme] = 0
             if expected_phoneme == predicted_phoneme:
                 phoneme_counts[predicted_phoneme] += 1
             if (i % 500 == 0):
-                print(f"Tested {i}/{len(wav_files)} files ({i/len(wav_files) * 100:.2f}%)...")
+                print(f"Testing files - Currently {i}/{len(wav_files)} ({i/len(wav_files) * 100:.2f}%)...")
             i += 1
         print(f"\nONNX Results for {set_name}:")
         for phoneme in phoneme_labels:
@@ -74,6 +82,16 @@ def onnx_batch_test():
             total = total_counts.get(phoneme, 0)
             acc = (correct / total) * 100 if total > 0 else 0
             print(f"  {phoneme}: {correct}/{total} - {acc:.2f}%")
+        
+        # Overall confusion summary (all files)
+        overall_confusion = defaultdict(int)
+        for exp, pred in all_confusion:
+            if exp != pred:
+                overall_confusion[(exp, pred)] += 1
+        if overall_confusion:
+            print("\nOverall confusion pairs (all files):")
+            for (exp, pred), count in sorted(overall_confusion.items(), key=lambda x: -x[1]):
+                print(f"  {exp} → {pred}: {count}")
         overall = sum(phoneme_counts.values()) / max(1, sum(total_counts.values()))
         print(f"Overall accuracy: {overall*100:.2f}%")
 

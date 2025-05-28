@@ -1,6 +1,5 @@
 import shutil
 from pathlib import Path
-import argparse
 
 def cleanup(folders=None):
     if folders is not None:

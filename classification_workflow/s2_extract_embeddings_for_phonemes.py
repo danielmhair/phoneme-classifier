@@ -17,7 +17,6 @@ augment = Compose([
 ])
 
 def extract_embeddings_for_phonemes(input_dir="organized_recordings", output_dir="phoneme_embeddings", phoneme_label_json_path="dist/phoneme_labels.json"):
-    
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -37,7 +36,7 @@ def extract_embeddings_for_phonemes(input_dir="organized_recordings", output_dir
     labels = []
     for _, row in meta.iterrows():
         if len(embeddings) % 500 == 0:
-            print(f"Added {len(embeddings)} embedding files (.npy)...")
+            print(f"Adding embedding (.npy) files ({len(embeddings)} so far)...")
 
         wav_path = input_dir / row["phoneme"] / row["new_filename"]
         if not wav_path.exists():

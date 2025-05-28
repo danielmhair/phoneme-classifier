@@ -182,34 +182,31 @@ def main():
         )
     
     steps = [
-        # ("Cleanup previous runs", cleanup_dist),
+        ("Cleanup previous runs", cleanup_dist),
         
-        # # Create Clean Model
-        # ("Prepare the dataset", prepare_wav_files_clean),
-        # ("Extract embeddings for phonemes", extract_embeddings_for_phonemes_clean),
-        # ("Save Classifier and encoder", classifier_encoder_clean),
-        # ("Visualize Results (before fine-tune)", visualize_results_clean),
-        # ("Analyze confusion pairs (before fine-tune)", analyze_confusion_clean),
-        # ("Batch test phonemes for initial", batch_test_phonemes_clean),
+        # Create Clean Model
+        ("Prepare the dataset", prepare_wav_files_clean),
+        ("Extract embeddings for phonemes", extract_embeddings_for_phonemes_clean),
+        ("Save Classifier and encoder", classifier_encoder_clean),
+        ("Visualize Results (before fine-tune)", visualize_results_clean),
+        ("Analyze confusion pairs (before fine-tune)", analyze_confusion_clean),
+        ("Batch test phonemes for initial", batch_test_phonemes_clean),
 
-        # # # Fine-tune model on noisy data
-        # (f"Prepare the noisy dataset (noisy mics - {len(RECORDINGS_LOWER_QUALITY_DIRS)} folders)", prepare_wav_files_finetuned),
-        # ("Extract embeddings for phonemes on noisy dataset", extract_embeddings_for_phonemes_finetuned),
-        # ("Fine-tune classifier on noisy data", finetune_classifier),
-        # ("Visualize Results (after fine-tune)", visualize_results_finetuned),
-        # ("Analyze confusion pairs (after fine-tune)", analyze_confusion_finetuned),
-        # ("Batch test phonemes for fine-tuned", batch_test_phonemes_finetuned),
+        # # Fine-tune model on noisy data
+        (f"Prepare the noisy dataset (noisy mics - {len(RECORDINGS_LOWER_QUALITY_DIRS)} folders)", prepare_wav_files_finetuned),
+        ("Extract embeddings for phonemes on noisy dataset", extract_embeddings_for_phonemes_finetuned),
+        ("Fine-tune classifier on noisy data", finetune_classifier),
+        ("Visualize Results (after fine-tune)", visualize_results_finetuned),
+        ("Analyze confusion pairs (after fine-tune)", analyze_confusion_finetuned),
+        ("Batch test phonemes for fine-tuned", batch_test_phonemes_finetuned),
         
-        # # Save inference model and onnx
-        # ("Benchmark inference and save", benchmark_and_save),
-        # ("Trace MLP classifier", trace_mlp_classifier),
-        # ("Export to ONNX", onnx_export),
+        # Save inference model and onnx
+        ("Benchmark inference and save", benchmark_and_save),
+        ("Trace MLP classifier", trace_mlp_classifier),
+        ("Export to ONNX", onnx_export),
         ("Test ONNX model", onnx_batch_test),
-        # ("Copy to Unreal Engine", overwrite_onnx_unreal)
+        ("Copy to Unreal Engine", overwrite_onnx_unreal)
     ]
-
-    DIST_DIR = Path("dist")
-    DIST_DIR.mkdir(parents=True, exist_ok=True)
 
     for label, func, *params in steps:
         print(f"\n🚀 Starting: {label}...")
