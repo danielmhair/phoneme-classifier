@@ -1,7 +1,7 @@
 import os
 import time
 import torch
-from transformers import Wav2Vec2Processor, Wav2Vec2Model
+from transformers import Wav2Vec2Processor, Wav2Vec2Model, Wav2Vec2ForCTC
 import joblib
 from pathlib import Path
 
@@ -39,7 +39,7 @@ def onnx_export():
     
     # --- 2️⃣ Load base wav2vec2 ---
     processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
-    base_w2v  = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base").eval()
+    base_w2v = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base").eval()
     pooled_w2v = Wav2Vec2Pooled(base_w2v)
 
     # --- DEBUG: Print traced model file info before loading ---

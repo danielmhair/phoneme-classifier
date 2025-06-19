@@ -15,4 +15,4 @@ phoneme_embeddings
 data
 logs
 **/dist
-**/dist_current
+**/dist_last

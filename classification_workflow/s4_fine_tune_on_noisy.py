@@ -22,6 +22,7 @@ def fine_tune_classifier_on_noisy(
 
     # --- CHECK CLASSIFIER OUTPUT SHAPE ---
     expected_classes = 37
+
     # Try to infer hidden_size and output shape from the classifier
     if hasattr(clf, 'coefs_') and len(clf.coefs_) > 0:
         hidden_size = clf.coefs_[-1].shape[0]
@@ -55,6 +56,15 @@ def fine_tune_classifier_on_noisy(
         raise ValueError(f"No embeddings found in {NOISY_EMBEDDINGS_DIR}. Check your metadata and embedding files.")
     X_noisy = np.stack(X_noisy)
     y_noisy = label_encoder.transform(y_noisy)
+
+    # --- CHECK LABEL ENCODER CLASSES MATCH ---
+    # Convert np.int64 to int for readable error messages
+    noisy_classes = set(int(x) for x in np.unique(y_noisy))
+    model_classes = set(int(x) for x in getattr(clf, 'classes_', []))
+    if model_classes and noisy_classes != model_classes:
+        missing_in_noisy = model_classes - noisy_classes
+        missing_in_model = noisy_classes - model_classes
+        raise ValueError(f"Label mismatch for warm_start: Model classes: {sorted(model_classes)}, Noisy y classes: {sorted(noisy_classes)}.\nMissing in noisy: {sorted(missing_in_noisy)}\nMissing in model: {sorted(missing_in_model)}\nAborting fine-tune to prevent sklearn warm_start error.")
 
     # --- EVALUATE BEFORE FINE-TUNING ---
     y_pred_before = clf.predict(X_noisy)

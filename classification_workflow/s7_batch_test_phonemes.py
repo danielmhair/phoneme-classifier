@@ -5,7 +5,7 @@ from pathlib import Path
 import torch
 import soundfile as sf
 import numpy as np
-from transformers import Wav2Vec2Processor, Wav2Vec2Model
+from transformers import Wav2Vec2Processor, Wav2Vec2Model, Wav2Vec2ForCTC
 import pickle
 
 def load_audio(file_path, target_sr=16000):
@@ -37,7 +37,7 @@ def batch_test_phonemes(
     if finetuned_recordings_path:
         test_sets.append(("Low-quality (low_quality_recordings)", Path(finetuned_recordings_path)))
 
-    # Load the Wav2Vec2 processor and model
+    # Load the processor and model
     processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
     model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base")
     model.eval()

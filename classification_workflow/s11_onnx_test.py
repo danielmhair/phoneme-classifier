@@ -8,7 +8,7 @@ from collections import defaultdict
 def onnx_batch_test():
     # Test both high-quality and low-quality sets
     test_sets = [
-        # ("High-quality (organized_recordings)", "dist/organized_recordings"),
+        ("High-quality (organized_recordings)", "dist/organized_recordings"),
         ("Low-quality (low_quality_recordings)", "recordings_lower_quality"),
         ("Low-quality (low_quality_recordings)", "recordings_lower_quality_2"),
         ("Low-quality (low_quality_recordings)", "recordings_lowest_quality_1"),

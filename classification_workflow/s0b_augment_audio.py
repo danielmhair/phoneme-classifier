@@ -1,54 +1,109 @@
+
+from pydub import AudioSegment
+import random
 import os
-from pathlib import Path
+import random
+import librosa
 import soundfile as sf
-from audiomentations import Compose, AddGaussianNoise, HighPassFilter, LowPassFilter, Normalize
-import numpy as np
+from pydub import AudioSegment
 
-def augment_audio(source_dirs: list[str], output_dir_str: str):
-    """
-    Augment audio files in the specified source directories and save them to the output directory.
-    
-    Args:
-        source_dirs (list[str]): List of source directories containing phoneme subdirectories with .wav files.
-        output_dir (str): Directory where augmented audio files will be saved.
-    """
-        
-    # Augmentation pipeline
-    augment = Compose([
-        AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.015, p=1.0),
-        HighPassFilter(min_cutoff_freq=100.0, max_cutoff_freq=300.0, p=0.8),
-        LowPassFilter(min_cutoff_freq=3000.0, max_cutoff_freq=8000.0, p=0.8),
-        Normalize(p=1.0),
-    ])
+def augment_audio(
+    input_root="organized_recordings",
+    output_root="augmented_recordings",
+    noise_path="recordings/silence.wav",
+    noise_on_original_pct=0.4,
+    noise_on_augmented_pct=0.2,
+    noise_reduction_range=(10, 25)  # SNR control: dB range for how quiet to make noise
+):
+    os.makedirs(output_root, exist_ok=True)
 
-    output_dir = Path(output_dir_str)
+    pitch_shifts = {
+        "pitch_up": 2,
+        "pitch_down": -2,
+    }
 
-    # Output directory
-    output_dir.mkdir(parents=True, exist_ok=True)
+    speed_changes = {
+        "speed_0.9x": 0.9,
+        "speed_1.1x": 1.1,
+    }
 
-    # Process each file
-    for source_dir_str in source_dirs:
-        source_dir = Path(source_dir_str)
-        if not source_dir.exists():
-            continue
+    # Load noise and normalize
+    noise_audio = AudioSegment.from_wav(noise_path)
 
-        for phoneme_dir in source_dir.glob("*"):
-            if not phoneme_dir.is_dir():
+    for dirpath, _, filenames in os.walk(input_root):
+        print(f"Augmenting from directory: {dirpath}")
+        for filename in filenames:
+            if not filename.lower().endswith(".wav"):
                 continue
 
-            phoneme = phoneme_dir.name
-            target_phoneme_dir = output_dir / phoneme
-            target_phoneme_dir.mkdir(parents=True, exist_ok=True)
+            input_path = os.path.join(dirpath, filename)
+            rel_path = os.path.relpath(dirpath, input_root)
+            output_dir = os.path.join(output_root, "aug", rel_path)
+            os.makedirs(output_dir, exist_ok=True)
 
-            for wav_path in phoneme_dir.glob("*.wav"):
-                try:
-                    audio, sr = sf.read(str(wav_path))
-                    if sr != 16000:
-                        continue
-                    augmented = augment(samples=audio, sample_rate=sr) # type:ignore
-                    new_filename = wav_path.stem + "_aug.wav"
-                    target_path = target_phoneme_dir / new_filename
-                    sf.write(str(target_path), augmented, sr)
-                    print(f"Saved: {target_path}")
-                except Exception as e:
-                    print(f"Error processing {wav_path}: {e}")
+            base_name = os.path.splitext(filename)[0]
+            sound = AudioSegment.from_wav(input_path)
+            y, sr = librosa.load(input_path, sr=None)
+
+            # --- Add noise to original ---
+            if random.random() < noise_on_original_pct:
+                noisy = overlay_noise(sound, noise_audio, noise_reduction_db=random.randint(*noise_reduction_range))
+                noisy_output = os.path.join(output_dir, f"{base_name}_orig_noisy.wav")
+                noisy.export(noisy_output, format="wav")
+
+            # --- Speed Augmentations ---
+            for label, factor in speed_changes.items():
+                altered = change_speed(sound, factor)
+                aug_output = os.path.join(output_dir, f"{base_name}_{label}.wav")
+                altered.export(aug_output, format="wav")
+
+                # Optionally add noise
+                if random.random() < noise_on_augmented_pct:
+                    noisy = overlay_noise(altered, noise_audio, noise_reduction_db=random.randint(*noise_reduction_range))
+                    noisy_output = os.path.join(output_dir, f"{base_name}_{label}_noisy.wav")
+                    noisy.export(noisy_output, format="wav")
+
+            # --- Pitch Augmentations ---
+            for label, steps in pitch_shifts.items():
+                y_shifted = change_pitch(y, sr, n_steps=steps)
+                pitch_output = os.path.join(output_dir, f"{base_name}_{label}.wav")
+                sf.write(pitch_output, y_shifted, sr)
+
+                # Optionally add noise
+                if random.random() < noise_on_augmented_pct:
+                    # Convert back to AudioSegment for noise mixing
+                    temp_path = pitch_output + "_temp.wav"
+                    sf.write(temp_path, y_shifted, sr)
+                    pitch_seg = AudioSegment.from_wav(temp_path)
+                    noisy = overlay_noise(pitch_seg, noise_audio, noise_reduction_db=random.randint(*noise_reduction_range))
+                    noisy_output = os.path.join(output_dir, f"{base_name}_{label}_noisy.wav")
+                    noisy.export(noisy_output, format="wav")
+                    os.remove(temp_path)
+
+    print("✅ Augmentation complete with speed, pitch, and realistic noise.")
+
+def change_speed(sound, speed=1.0):
+    new_frame_rate = int(sound.frame_rate * speed)
+    return sound._spawn(sound.raw_data, overrides={"frame_rate": new_frame_rate}).set_frame_rate(sound.frame_rate)
+
+def change_pitch(y, sr, n_steps):
+    return librosa.effects.pitch_shift(y, sr=sr, n_steps=n_steps)
+
+def overlay_noise(clean_audio: AudioSegment, background_noise: AudioSegment, noise_reduction_db: int = 18) -> AudioSegment:
+    clean_duration = len(clean_audio)
+    bg_duration = len(background_noise)
+
+    if bg_duration > clean_duration:
+        max_start = bg_duration - clean_duration
+        start = random.randint(0, max_start)
+        noise_slice = background_noise[start:start + clean_duration]
+    else:
+        loops = (clean_duration // bg_duration) + 1
+        noise_slice = (background_noise * loops)[:clean_duration]
+
+    # Ensure the type is AudioSegment
+    if not isinstance(noise_slice, AudioSegment):
+        raise TypeError(f"Expected AudioSegment, got {type(noise_slice)}")
+
+    noise_slice = noise_slice - noise_reduction_db
+    return clean_audio.overlay(noise_slice)

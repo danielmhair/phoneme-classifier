@@ -32,17 +32,19 @@ def extract_embeddings_for_phonemes(input_dir="organized_recordings", output_dir
         json.dump(phoneme_labels, f)
     print(f"✅ Saved phoneme label order to dist/phoneme_labels.json with {len(phoneme_labels)} labels.")
 
+    print(f"Loaded metadata with {len(meta)} rows.")
     embeddings = []
     labels = []
-    for _, row in meta.iterrows():
+    for i, row in meta.iterrows():
         if len(embeddings) % 500 == 0:
             print(f"Adding embedding (.npy) files ({len(embeddings)} so far)...")
-
         wav_path = input_dir / row["phoneme"] / row["new_filename"]
         if not wav_path.exists():
+            print(f"[SKIP] File does not exist: {wav_path}")
             continue
         audio, sr = sf.read(str(wav_path))
         if sr != 16000:
+            print(f"[SKIP] {wav_path} has sample rate {sr}, expected 16000.")
             continue
         inputs = processor(audio, sampling_rate=16000, return_tensors="pt", padding=True) # type:ignore
         with torch.no_grad():

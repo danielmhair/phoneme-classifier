@@ -54,7 +54,6 @@ def main():
         "recordings_lower_quality",
         "recordings_lower_quality_2",
         "recordings_lowest_quality_1",
-        AUGMENTED_RECORDINGS_DIR,
     ]
 
     
@@ -74,7 +73,44 @@ def main():
 
     def prepare_wav_files_clean():
         clean_previous_recordings(ORGANIZED_RECORDINGS_DIR)
-        metadata = prepare_wav_files(RECORDINGS_DIR, ORGANIZED_RECORDINGS_DIR)
+
+        if not Path(RECORDINGS_DIR).exists():
+            print(f"⚠️ Warning: {RECORDINGS_DIR} does not exist. Skipping.")
+            raise Exception(f"Source directory {RECORDINGS_DIR} does not exist.")
+
+        metadata = []
+        new_metadata = prepare_wav_files(
+            source_dir=RECORDINGS_DIR,
+            target_dir=ORGANIZED_RECORDINGS_DIR,
+            clean=False  # Don't delete between merges
+        )
+        metadata.extend(new_metadata)
+
+        augment_audio(
+            input_root=ORGANIZED_RECORDINGS_DIR,
+            output_root=AUGMENTED_RECORDINGS_DIR,
+            noise_path="recordings/silence.wav",
+            noise_on_original_pct=0.4,
+            noise_on_augmented_pct=0.2,
+            noise_reduction_range=(10, 25)  # SNR control: dB range for how quiet to make noise
+        )
+
+        all_source_dirs = [
+            *RECORDINGS_LOWER_QUALITY_DIRS,  # noisy mics
+            AUGMENTED_RECORDINGS_DIR,  # augmented
+        ]
+
+        for rec_dir in all_source_dirs:
+            if not Path(rec_dir).exists():
+                print(f"⚠️ Warning: {rec_dir} does not exist. Skipping.")
+                continue
+            new_metadata = prepare_wav_files(
+                source_dir=rec_dir,
+                target_dir=ORGANIZED_RECORDINGS_DIR,
+                clean=False  # Don't delete between merges
+            )
+            metadata.extend(new_metadata)
+
         save_metadata(metadata, ORGANIZED_RECORDINGS_DIR)
         print(f"✅ Prepared {len(metadata)} recordings in {ORGANIZED_RECORDINGS_DIR}.")
         print(f"✅ Metadata saved to {ORGANIZED_RECORDINGS_DIR}/metadata.csv.")
@@ -118,88 +154,15 @@ def main():
             finetuned_recordings_path=ORGANIZED_RECORDINGS_LOW_QUALITY,
         )
     
-    def prepare_wav_files_finetuned():
-        augment_audio(
-            output_dir_str=AUGMENTED_RECORDINGS_DIR,
-            source_dirs=[
-                "recordings_lower_quality",
-                "recordings_lower_quality_2",
-                "recordings_lowest_quality_1",
-            ]
-        )
-
-        clean_previous_recordings(ORGANIZED_RECORDINGS_LOW_QUALITY)
-        metadata = []
-        for rec_dir in RECORDINGS_LOWER_QUALITY_DIRS:
-            if not Path(rec_dir).exists():
-                print(f"Warning: {rec_dir} does not exist. Skipping preparation for this directory.")
-                continue
-            new_metadata = prepare_wav_files(source_dir=rec_dir, target_dir=ORGANIZED_RECORDINGS_LOW_QUALITY, clean=False)
-            metadata.extend(new_metadata)
-        save_metadata(metadata=metadata, TARGET_DIR=ORGANIZED_RECORDINGS_LOW_QUALITY)
-        print(f"✅ Prepared {len(metadata)} recordings in {ORGANIZED_RECORDINGS_LOW_QUALITY}.")
-        print(f"✅ Metadata saved to {ORGANIZED_RECORDINGS_LOW_QUALITY}/metadata.csv.")
-
-    def extract_embeddings_for_phonemes_finetuned():
-        extract_embeddings_for_phonemes(
-            input_dir=ORGANIZED_RECORDINGS_LOW_QUALITY,
-            output_dir=FINETUNED_EMBEDDINGS_DIR,
-            phoneme_label_json_path=PHONEME_LABELS_JSON_PATH,
-        )
-    
-    def finetune_classifier():
-        fine_tune_classifier_on_noisy(
-            NOISY_EMBEDDINGS_DIR = Path(FINETUNED_EMBEDDINGS_DIR),
-            CLEAN_MODEL_PATH = Path(CLEAN_MODEL_PATH),
-            LABEL_ENCODER_PATH = Path(LABEL_ENCODER_PATH),
-            FINETUNED_MODEL_PATH = Path(FINETUNED_MODEL_PATH),
-            FINE_TUNE_EPOCHS = 2,
-            FINE_TUNE_LR = 1e-4,
-        )
-        
-    def visualize_results_finetuned():
-        visualize_results(
-            classifier_path=FINETUNED_MODEL_PATH,
-            label_encoder_path=LABEL_ENCODER_PATH,
-            type_name="finetuned",
-            embeddings_dir=PHONEME_EMBEDDINGS_DIR,
-        )
-    
-    def analyze_confusion_finetuned():
-        analyze_confusion(
-            classifier_path=FINETUNED_MODEL_PATH,
-            label_encoder_path=LABEL_ENCODER_PATH,
-            embeddings_dir=FINETUNED_EMBEDDINGS_DIR,
-        )
-
-    def batch_test_phonemes_finetuned():
-        batch_test_phonemes(
-            classifier_path=FINETUNED_MODEL_PATH,
-            label_encoder_path=LABEL_ENCODER_PATH,
-            phoneme_label_json_path=PHONEME_LABELS_JSON_PATH,
-            training_recordings_path=ORGANIZED_RECORDINGS_DIR,
-            finetuned_recordings_path=ORGANIZED_RECORDINGS_LOW_QUALITY,
-        )
-    
     steps = [
         ("Cleanup previous runs", cleanup_dist),
-        
-        # Create Clean Model
-        ("Prepare the dataset", prepare_wav_files_clean),
+        ("Prepare the dataset (organize and augment)", prepare_wav_files_clean),
         ("Extract embeddings for phonemes", extract_embeddings_for_phonemes_clean),
         ("Save Classifier and encoder", classifier_encoder_clean),
         ("Visualize Results (before fine-tune)", visualize_results_clean),
         ("Analyze confusion pairs (before fine-tune)", analyze_confusion_clean),
         ("Batch test phonemes for initial", batch_test_phonemes_clean),
 
-        # # Fine-tune model on noisy data
-        (f"Prepare the noisy dataset (noisy mics - {len(RECORDINGS_LOWER_QUALITY_DIRS)} folders)", prepare_wav_files_finetuned),
-        ("Extract embeddings for phonemes on noisy dataset", extract_embeddings_for_phonemes_finetuned),
-        ("Fine-tune classifier on noisy data", finetune_classifier),
-        ("Visualize Results (after fine-tune)", visualize_results_finetuned),
-        ("Analyze confusion pairs (after fine-tune)", analyze_confusion_finetuned),
-        ("Batch test phonemes for fine-tuned", batch_test_phonemes_finetuned),
-        
         # Save inference model and onnx
         ("Benchmark inference and save", benchmark_and_save),
         ("Trace MLP classifier", trace_mlp_classifier),
