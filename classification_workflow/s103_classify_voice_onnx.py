@@ -21,11 +21,13 @@ processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
 wav2vec_session = ort.InferenceSession("dist/wav2vec2.onnx")
 mlp_session = ort.InferenceSession("dist/phoneme_mlp.onnx")
 
+
 def record_audio(duration=DURATION, fs=SAMPLE_RATE):
     print(f"Recording for {duration} seconds. Please speak now...")
     audio = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype='float32')
     sd.wait()
     return audio.flatten()
+
 
 def process_audio(audio):
     nonzero_indices = np.where(np.abs(audio) > MIN_AMP_THRESHOLD)[0]
@@ -36,9 +38,10 @@ def process_audio(audio):
     trimmed = audio[start:end]
     return trimmed / np.max(np.abs(trimmed)) if np.max(np.abs(trimmed)) > 0 else trimmed
 
+
 def extract_embedding_onnx(audio_np):
     print("raw audio shape:", audio_np.shape)
-    inputs = processor(audio_np, sampling_rate=SAMPLE_RATE, return_tensors="np", padding=True) # type:ignore
+    inputs = processor(audio_np, sampling_rate=SAMPLE_RATE, return_tensors="np", padding=True)  # type:ignore
     print("processed input shape:", inputs['input_values'].shape)
 
     ort_inputs = {wav2vec_session.get_inputs()[0].name: inputs['input_values']}
@@ -85,6 +88,7 @@ def main():
         for i, (label, score) in enumerate(zip(phoneme_labels, logits)):
             print(f" [{i:02}] {label}: {score:.2f}")
         print(f"\nPredicted phoneme: 🔤 {pred_label}")
+
 
 if __name__ == "__main__":
     try:
