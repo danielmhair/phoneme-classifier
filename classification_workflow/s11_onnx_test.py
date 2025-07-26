@@ -50,12 +50,21 @@ def onnx_batch_test():
                 print(f"Error loading {wav_file}: {e}")
                 continue
             # ONNX pipeline
-            emb = sess_w2v.run([
-                "embedding"], {"audio": audio.astype(np.float32)[None, :]}
-            )[0]
-            onnx_probs = sess_mlp.run([
-                "phoneme_probs"], {"embedding": emb}
-            )[0]
+
+            # —— DEBUG: print out the first 5 samples & length ——
+            processed = audio
+            print(f"→ Python processed shape: {processed.shape}")
+            print("→ sample[:5]:", processed[:5])
+            # Preprocess: normalize to [-1, 1]
+            if np.max(np.abs(audio)) > 0:
+                audio = audio / np.max(np.abs(audio))
+
+            # Ensure float32 shape (1, T)
+            audio_input = audio.astype(np.float32).reshape(1, -1)
+
+            # Run ONNX inference
+            emb = sess_w2v.run(["embedding"], {"audio": audio_input})[0]
+            onnx_probs = sess_mlp.run(["phoneme_probs"], {"embedding": emb})[0]
             pred_idx = int(np.argmax(onnx_probs))
             if pred_idx < 0 or pred_idx >= len(phoneme_labels):
                 print(f"[ERROR] pred_idx {pred_idx} out of range for phoneme_labels (len={len(phoneme_labels)}). onnx_probs={onnx_probs}")
