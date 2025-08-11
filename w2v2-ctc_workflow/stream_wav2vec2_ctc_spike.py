@@ -21,6 +21,7 @@ from typing import List, Optional
 import torch
 import soundfile as sf
 from transformers import Wav2Vec2Model, Wav2Vec2Processor
+import json  # added for JSON vocab support
 
 # --------- Config Defaults ---------
 DEFAULT_SAMPLE_RATE = 16_000
@@ -33,16 +34,37 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def load_phoneme_vocab(vocab_path: Path) -> List[str]:
+    """Load phoneme symbols.
+
+    Supports two formats:
+    1. Plain text: one symbol per non-empty line.
+    2. JSON file: a JSON array of symbols (e.g. phoneme_labels.json).
+    """
     if not vocab_path.exists():
         raise FileNotFoundError(f"Phoneme vocab not found at {vocab_path}")
-    # Simple: each line is a symbol, allow blank symbol we'll prepend
-    symbols = []
-    with open(vocab_path, "r", encoding="utf-8") as f:
-        for line in f:
+    text = vocab_path.read_text(encoding="utf-8").strip()
+    symbols: List[str] = []
+    if vocab_path.suffix.lower() == ".json" or text.startswith("["):
+        try:
+            data = json.loads(text)
+            if not isinstance(data, list):
+                raise ValueError("JSON vocab must be a list of symbols")
+            for item in data:
+                if not isinstance(item, str):
+                    raise ValueError("All JSON vocab entries must be strings")
+                sym = item.strip()
+                if sym:
+                    symbols.append(sym)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse JSON vocab {vocab_path}: {e}") from e
+    else:
+        for line in text.splitlines():
             t = line.strip()
             if not t:
                 continue
             symbols.append(t)
+    if not symbols:
+        raise ValueError(f"No symbols loaded from vocab {vocab_path}")
     return symbols
 
 # --------- Model Wrapper ---------
@@ -128,7 +150,7 @@ def offline_decode(model: StreamingCTCModel, audio: torch.Tensor, sr: int) -> Li
 
 
 def run_spike(args):
-    vocab_symbols = load_phoneme_vocab(Path(args.phoneme_vocab))
+    vocab_symbols = load_phoneme_vocab(Path(args.phoneme_vocab) or "dist/phoneme_labels.json")
     # Insert blank at index 0
     id2sym = ["<blank>"] + vocab_symbols
     # sym2id could be used later for mapping back; kept for potential future use
@@ -159,6 +181,15 @@ def run_spike(args):
 
     total_audio_s = len(audio_t)/sr
     print(f"Audio {wav_path.name}: {total_audio_s:.2f}s @ {sr}Hz")
+
+    # Warmup (excluded from metrics)
+    if args.warmup:
+        warmup_samples = int(sr * args.chunk_ms / 1000)
+        dummy = torch.zeros(warmup_samples, dtype=torch.float32)
+        t0_w = time.time()
+        _ = model.forward_logits(dummy, sr)
+        warmup_dt = time.time() - t0_w
+        print(f"Warmup forward completed in {warmup_dt*1000:.1f} ms (excluded from metrics)")
 
     metrics = Metrics([])
     emitted: List[str] = []
@@ -196,6 +227,14 @@ def run_spike(args):
     streamed_seq = ''.join(emitted)
     print("Streamed sequence (greedy, stabilized):", streamed_seq)
     print("Latency summary:", metrics.summary(total_audio_s))
+    if args.warmup:
+        print("(Warmup forward excluded from metrics above)")
+    # Steady-state metrics (exclude first chunk timing) if more than one chunk
+    if len(metrics.chunk_times) > 1:
+        steady = metrics.chunk_times[1:]
+        steady_avg = sum(steady)/len(steady)
+        steady_rtf = sum(steady)/total_audio_s
+        print(f"Steady-state (excl first chunk): avg={steady_avg*1000:.1f}ms RTF={steady_rtf:.3f}")
 
     print("\nOffline reference decode… (NOTE: random head => meaningless symbols, used only for shape/latency in spike)")
     offline_symbols = offline_decode(model, audio_t, sr)
@@ -222,6 +261,7 @@ def parse_args():
     ap.add_argument("--chunk_ms", type=int, default=CHUNK_MS)
     ap.add_argument("--stride_ms", type=int, default=CHUNK_STRIDE_MS)
     ap.add_argument("--stabilization_repeats", type=int, default=STABILIZATION_MIN_REPEATS)
+    ap.add_argument("--warmup", action="store_true", help="Run a dummy forward pass before timing (excluded from metrics)")
     return ap.parse_args()
 
  
