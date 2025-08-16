@@ -1,28 +1,26 @@
 import os
-import sys
 import sounddevice as sd
 import soundfile as sf
-import requests
-from phonemes import phoneme_similarity_groups
 from datetime import datetime
 
 # Audio settings
 duration = 3  # seconds
 sampling_rate = 16000
-model_url = "http://localhost:8000/predict-phonemes"
 
 # Character to phoneme and explanation mapping
 char_to_phoneme = {
-    "a": ("æ", "Say 'a' as in cat, mouth wide open."),
-    "b": ("b", "Say 'buh' as in bat, lips gently touching then popping open."),
-    "c": ("k", "Say 'kuh' as in cat, the back of your tongue touches the roof of your mouth."),
+    "a_æ": ("æ", "Say 'a' as in cat, mouth wide open."),
+    "a_ɑ": ("æ", "Say 'a' as in father, mouth wide open."),
+    "b": ("b", "Say 'b' as in bat, lips gently touching then popping open."),
+    "c": ("k", "Say 'k' as in kangaroo, the back of your tongue touches the roof of your mouth."),
     "d": ("d", "Say 'duh' as in dog, your tongue touches just behind your teeth."),
     "e": ("ɛ", "Say 'eh' as in bed, relaxed mouth."),
     "f": ("f", "Say 'fff' as in fish, blow air gently between your teeth and bottom lip."),
     "g": ("g", "Say 'guh' as in go, back of tongue gently taps roof of your mouth."),
     "h": ("h", "Say 'huh' as in hat, gentle breathy sound."),
     "i": ("ɪ", "Say 'ih' as in sit, short and quick."),
-    "j": ("dʒ", "Say 'juh' as in jump, quick soft sound."),
+    "j_dʒ": ("dʒ", "Say 'juh' as in jump, quick soft sound."),
+    "su_ʒ": ("ʒ", "Say 'su' in measure, like a buzzing j sound."),
     "k": ("k", "Say 'kuh' as in cat, back of tongue touches roof of mouth."),
     "l": ("l", "Say 'lll' as in lip, tongue touches top of your mouth behind teeth."),
     "m": ("m", "Say 'mmm' as in mom, lips gently closed, humming sound."),
@@ -37,30 +35,40 @@ char_to_phoneme = {
     "v": ("v", "Say 'vvv' as in van, gently vibrate air between your bottom lip and teeth."),
     "w": ("w", "Say 'wuh' as in water, rounded lips."),
     "x": ("ks", "Say 'ks' as in box, quick sound like a kiss."),
+    "y_j": ("j", "Say 'yeh' as in yes, gentle and smooth."),
     "y": ("j", "Say 'yuh' as in yes, gentle and smooth."),
     "z": ("z", "Say 'zzz' as in zoo, buzzing like a bee."),
     "ch": ("tʃ", "Say 'chuh' as in chair, quick and sharp."),
     "sh": ("ʃ", "Say 'shhh' as in shoe, quiet sound, like telling someone to be quiet."),
-    "th": ("θ", "Say 'th' as in think, put tongue lightly between teeth and blow air softly."),
+    "th": ("θ", "Say 'th' as in think, put tongue lightly between teeth and blow air softly, but no vibration."),
     "dh": ("ð", "Say 'th' as in this, put tongue between teeth but gently vibrate air."),
     "ng": ("ŋ", "Say 'ng' as in ring, mouth slightly open, gentle sound from your nose."),
     "ee": ("iː", "Say 'ee' as in bee, stretch the sound long and smile."),
     "oo": ("uː", "Say 'oo' as in moon, lips rounded tightly."),
+    "oo_uw": ("uwː", "Say 'oo' as in moon, lips rounded tightly."),
+    "oo_ʊ": ("ʊː", "Say 'oo' as in foot, short relaxed sound."),
     "ay": ("eɪ", "Say 'ay' as in day, starts with 'eh' and moves to 'ee'."),
     "igh": ("aɪ", "Say 'eye' as in high, mouth starts open and moves to smiling."),
     "ow": ("aʊ", "Say 'ow' as in cow, mouth starts open then moves to round."),
     "oy": ("ɔɪ", "Say 'oy' as in boy, mouth round then smiling."),
+    "oa": ("oʊ", "Say 'oh' as in boat, mouth round and open."),
+    "ir_ɝ": ("ɝ", "Say 'ur' as in her, mouth relaxed."),
     "er": ("ɜː", "Say 'ur' as in her, mouth relaxed."),
     "air": ("eə", "Say 'air' as in chair, start smiling then relax your mouth."),
     "ear": ("ɪə", "Say 'ear' as in ear, short quick 'ee' then relax."),
     "ure": ("ʊə", "Say 'oor' as in pure, short 'oo' then relax."),
     "or": ("ɔː", "Say 'or' as in door, mouth round and open."),
-    "ar": ("ɑː", "Say 'ar' as in car, mouth wide open.")
+    "ar": ("ɑː", "Say 'ar' as in car, mouth wide open."),
+    "ai_eɪ": ("eɪ", "Say 'ai' bait, mouth starts open and moves to smiling."),
+    "I_aɪ": ("aɪ", "Say 'I' as in high, mouth starts open and moves to smiling."),
+    "ow_aʊ": ("aʊ", "Say 'ow' as in cow, mouth starts open then moves to round."),
+    "oy_oɪ_ɔɪ": ("oɪ", "Say 'oy' as in boy, mouth round then smiling."),
+    "eh_ai_ɛə": ("ɛə", "Say 'ai' as in air, like 'ehhhh'."),
 }
 
 
 def record_audio(child_name, character, amount_to_do=25):
-    output_dir = os.path.join("recordings", child_name, character)
+    output_dir = os.path.join("lowest_quality_2", child_name, character)
     os.makedirs(output_dir, exist_ok=True)
 
     phoneme_info = char_to_phoneme.get(character)
@@ -73,7 +81,7 @@ def record_audio(child_name, character, amount_to_do=25):
 
     for attempt in range(1, amount_to_do + 1):
         if (attempt == 1):
-            input(f"Press Enter to record attempt {attempt} '{character}'...")
+            input(f"Press Enter to start recording '{character}'...")
 
         audio = sd.rec(int(duration * sampling_rate), samplerate=sampling_rate, channels=1)
         # input("Press Enter to stop...")
@@ -93,13 +101,11 @@ def record_audio(child_name, character, amount_to_do=25):
 
 
 if __name__ == "__main__":
-    sys.argv = [sys.argv[0], "chloe", "ch", "35"]
-    if len(sys.argv) < 3:
-        print("Usage: python main.py <child_name> <character> [amount_of_tries]")
-        sys.exit(1)
-
-    print(sys.argv)
-    child_name = sys.argv[1]
-    character = sys.argv[2]
-    amount_to_do = int(sys.argv[3]) if len(sys.argv) > 3 else 25
-    record_audio(child_name, character, amount_to_do)
+    child_name = "dan"
+    amount_to_do = 5
+    # get all sound characters from phoneme folders in recordings/chloe/*
+    phoneme_folders = os.listdir("recordings/callie")
+    phoneme_folders = [folder for folder in phoneme_folders if os.path.isdir(os.path.join("recordings/chloe", folder))]
+    phoneme_folders = sorted(phoneme_folders)
+    for character in phoneme_folders:
+        record_audio(child_name, character, amount_to_do)

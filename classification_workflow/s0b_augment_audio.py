@@ -82,12 +82,15 @@ def augment_audio(
 
     print("✅ Augmentation complete with speed, pitch, and realistic noise.")
 
+
 def change_speed(sound, speed=1.0):
     new_frame_rate = int(sound.frame_rate * speed)
     return sound._spawn(sound.raw_data, overrides={"frame_rate": new_frame_rate}).set_frame_rate(sound.frame_rate)
 
+
 def change_pitch(y, sr, n_steps):
     return librosa.effects.pitch_shift(y, sr=sr, n_steps=n_steps)
+
 
 def overlay_noise(clean_audio: AudioSegment, background_noise: AudioSegment, noise_reduction_db: int = 18) -> AudioSegment:
     clean_duration = len(clean_audio)

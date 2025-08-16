@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 
+
 def cleanup(folders=None):
     if folders is not None:
         for file in folders:
