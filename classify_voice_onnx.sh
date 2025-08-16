@@ -8,4 +8,4 @@ cp \\\\wsl.localhost\\Ubuntu\\home\\danie\\Workspaces\\fast-api-phoneme-python\\
 
 ./.venv/Scripts/activate
 
-c:/Users/danie/Documents/MyProject/AiServer/fast-api-python/.venv/Scripts/python.exe c:/Users/danie/Documents/MyProject/AiServer/fast-api-python/classification_workflow/s103_classify_voice_onnx.py
+c:/Users/danie/Documents/MyProject/AiServer/fast-api-python/.venv/Scripts/python.exe c:/Users/danie/Documents/MyProject/AiServer/fast-api-python/control_mlp_workflow/s103_classify_voice_onnx.py

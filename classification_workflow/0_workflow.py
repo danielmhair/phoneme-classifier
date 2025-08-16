@@ -4,6 +4,7 @@ import os
 import time
 from datetime import datetime
 
+
 class Logger:
     def __init__(self, log_path):
         self.terminal = sys.__stdout__  # Preserve original terminal
@@ -16,6 +17,7 @@ class Logger:
     def flush(self):
         self.terminal.flush() # type: ignore
         self.log.flush()
+
 
 # Create logs/ directory if it doesn't exist
 os.makedirs("logs", exist_ok=True)

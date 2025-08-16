@@ -146,7 +146,7 @@ phoneme-classifier/
 │   ├── label_encoder.pkl          # Label mappings
 │   ├── wav2vec2.onnx              # Feature extractor (ONNX)
 │   └── phoneme_mlp.onnx           # Classifier (ONNX)
-└── ⚙️ classification_workflow/      # Magic happens here (Python scripts)
+└── ⚙️ control_mlp_workflow/      # Magic happens here (Python scripts)
 ```
 
 ### 📊 Data Tracking
