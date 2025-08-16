@@ -39,6 +39,7 @@ To set up the project, follow these steps:
 To run the project, you can use the following commands:
 
 - Install the project dependencies:
+
   ```
   pip install -r requirements.txt
   ```
