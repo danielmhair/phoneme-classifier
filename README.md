@@ -48,3 +48,8 @@ To run the project, you can use the following commands:
   - cd src2 && uvicorn app:app --reload
   - cd src && uvicorn phoneme_api:app --reload
   - python main.py [name] [character_sound] [amount_of_tries]
+
+```bash
+claude then
+/sc:workflow Generate a PRD in a new tasks folder, but make sure to use the notion mcp to ensure you understand the theme, current epic and task we are on. Then create a good workflow from this. Notice the dist folder, and recordings folder to understand what type of output I'm expecting for the Live Phoneme CTCs and how they fit in. In the end, we want a good design where its very modular, not huge files. Do not deal with backwards compatability AND be simple and use good practices for design. Do not overengineer.
+```
