@@ -188,6 +188,10 @@ def main():
     print("\n\n🏁 All steps completed successfully. 🏁")
     print("You can test phonemes through the command line with w5_record_voice_cli.py")
     print(f"✅✅ Workflow complete! Total time: {total_time:.2f} seconds ✅✅")
+    
+    print("\n📝 For CTC (sequence) phoneme recognition:")
+    print("   cd ../ctc_w2v2_workflow")
+    print("   python ctc_workflow.py")
 
 if __name__ == "__main__":
     main()
