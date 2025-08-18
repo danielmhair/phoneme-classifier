@@ -12,13 +12,11 @@ import numpy as np
 from pathlib import Path
 import sys
 
-# Add the mlp_control_workflow to path for imports
-sys.path.append(str(Path(__file__).parent / "mlp_control_workflow"))
-
-from models.ctc_model import (
-    CTCModel, 
-    Wav2Vec2FeatureExtractor, 
-    SequenceEncoder, 
+# Import from the same directory
+from ctc_model import (
+    CTCModel,
+    Wav2Vec2FeatureExtractor,
+    SequenceEncoder,
     CTCHead,
     create_ctc_model
 )

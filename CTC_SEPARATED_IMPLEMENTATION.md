@@ -2,20 +2,35 @@
 
 ## 🎯 Overview
 
-Successfully implemented and **separated** CTC (Connectionist Temporal Classification) for phoneme sequence recognition as requested in Epic 1: Live Phoneme CTCs. The implementation is now in its own `ctc_w2v2_workflow/` directory, completely separate from the MLP workflow.
+Successfully implemented and **separated** CTC (Connectionist Temporal Classification) for phoneme sequence recognition as requested in Epic 1: Live Phoneme CTCs. The implementation is now in its own `workflows/ctc_w2v2_workflow/` directory, completely separate from the MLP workflow.
 
 ## 📁 Directory Structure
 
 ```
 phoneme-classifier/
-├── mlp_control_workflow/          # Original MLP workflow (unchanged)
-│   ├── 0_workflow.py              # MLP training pipeline  
-│   ├── s2_extract_embeddings_for_phonemes.py
-│   ├── s3_classifier_encoder.py
-│   └── validations/
-│       └── classify_voice_pkl.py
-│
-└── ctc_w2v2_workflow/             # NEW: CTC workflow (separate)
+└── workflows/
+    ├── mlp_control_workflow/          # Original MLP workflow (unchanged)
+    │   ├── 0_workflow.py              # MLP training pipeline  
+    │   ├── s2_extract_embeddings_for_phonemes.py
+    │   ├── s3_classifier_encoder.py
+    │   └── validations/
+    │       └── classify_voice_pkl.py
+    │
+    ├── ctc_w2v2_workflow/             # NEW: CTC workflow (separate)
+    │   ├── models/
+    │   │   └── ctc_model.py           # CTC architecture
+    │   ├── validations/
+    │   │   └── classify_voice_ctc.py  # CTC inference
+    │   ├── 0_workflow.py            # Main CTC workflow
+    │   ├── s2_extract_embeddings_temporal.py
+    │   ├── s3_ctc_classifier.py       # CTC training
+    │   ├── test_ctc_model.py          # Tests
+    │   ├── requirements.txt           # CTC dependencies
+    │   └── README.md                  # CTC documentation
+    │
+    └── shared/                        # Shared workflow utilities
+        ├── __init__.py
+        └── workflow_executor.py       # Common step execution logic
     ├── models/
     │   └── ctc_model.py           # CTC architecture
     ├── validations/
@@ -32,14 +47,14 @@ phoneme-classifier/
 
 ### 1. MLP Workflow (Original)
 ```bash
-cd mlp_control_workflow
+cd workflows/mlp_control_workflow
 python 0_workflow.py
 # Test: python validations/classify_voice_pkl.py
 ```
 
 ### 2. CTC Workflow (New)
 ```bash
-cd ctc_w2v2_workflow
+cd workflows/ctc_w2v2_workflow
 pip install -r requirements.txt
 python ctc_workflow.py
 # Test: python validations/classify_voice_ctc.py
@@ -63,7 +78,7 @@ python ctc_workflow.py
 
 | Feature | MLP Workflow | CTC Workflow |
 |---------|--------------|--------------|
-| **Location** | `mlp_control_workflow/` | `ctc_w2v2_workflow/` |
+| **Location** | `workflows/mlp_control_workflow/` | `workflows/ctc_w2v2_workflow/` |
 | **Purpose** | Single phoneme classification | Phoneme sequence recognition |
 | **Dependencies** | sklearn, numpy, transformers | PyTorch, transformers, soundfile |
 | **Training** | Fast sklearn MLP | PyTorch LSTM + CTC |
@@ -92,14 +107,14 @@ python ctc_workflow.py
 
 ### MLP (Single Phonemes)
 ```bash
-cd mlp_control_workflow
+cd workflows/mlp_control_workflow
 python 0_workflow.py                    # Train MLP
 python validations/classify_voice_pkl.py  # Test
 ```
 
 ### CTC (Phoneme Sequences)
 ```bash
-cd ctc_w2v2_workflow
+cd workflows/ctc_w2v2_workflow
 pip install -r requirements.txt        # Install PyTorch deps
 python ctc_workflow.py                  # Train CTC
 python validations/classify_voice_ctc.py # Test
@@ -110,7 +125,7 @@ python validations/classify_voice_ctc.py # Test
 ### Compare Performance
 ```bash
 # Test MLP
-cd mlp_control_workflow
+cd workflows/mlp_control_workflow
 python validations/classify_voice_pkl.py
 
 # Test CTC  
@@ -121,7 +136,7 @@ python validations/classify_voice_ctc.py
 ### Run Tests
 ```bash
 # MLP tests (if available)
-cd mlp_control_workflow
+cd workflows/mlp_control_workflow
 python -m pytest
 
 # CTC tests
@@ -138,7 +153,7 @@ pip install scikit-learn numpy transformers soundfile
 
 ### CTC Workflow Dependencies
 ```bash
-cd ctc_w2v2_workflow
+cd workflows/ctc_w2v2_workflow
 pip install -r requirements.txt
 # Includes: torch, transformers, soundfile, numpy, pandas
 ```

@@ -9,7 +9,8 @@
       "Bash(cp:*)",
       "Bash(rm:*)",
       "Bash(python:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

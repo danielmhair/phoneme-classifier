@@ -23,7 +23,7 @@ CTC Implementation Complete!
 
   # Enable CTC in main workflow
   export ENABLE_CTC=true
-  cd mlp_control_workflow
+  cd workflows/mlp_control_workflow
   python 0_workflow.py
 
   # Test CTC inference

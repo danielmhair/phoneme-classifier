@@ -244,10 +244,10 @@
   Phase 1: Core CTC Implementation (Weeks 1-2)
 
   New Files:
-  - mlp_control_workflow/models/ctc_model.py - PyTorch CTC architecture
-  - mlp_control_workflow/s3_ctc_classifier.py - CTC training script
-  - mlp_control_workflow/utils/ctc_decoder.py - CTC decoding utilities
-  - mlp_control_workflow/validations/classify_voice_ctc.py - CTC inference validation
+  - workflows/mlp_control_workflow/models/ctc_model.py - PyTorch CTC architecture
+  - workflows/mlp_control_workflow/s3_ctc_classifier.py - CTC training script
+  - workflows/mlp_control_workflow/utils/ctc_decoder.py - CTC decoding utilities
+  - workflows/mlp_control_workflow/validations/classify_voice_ctc.py - CTC inference validation
 
   Modified Files:
   - s2_extract_embeddings_for_phonemes.py - Preserve temporal sequences

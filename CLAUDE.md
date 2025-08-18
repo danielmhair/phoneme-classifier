@@ -43,8 +43,12 @@ pip install torch --extra-index-url https://download.pytorch.org/whl/cu118
 ### Data Preparation and Training
 
 ```bash
-# Run the complete phoneme classification workflow
-cd mlp_control_workflow
+# Run the MLP control workflow (traditional classifier)
+cd workflows/mlp_control_workflow
+python 0_workflow.py
+
+# Run the CTC Wav2Vec2 workflow (sequence modeling)
+cd workflows/ctc_w2v2_workflow
 python 0_workflow.py
 ```
 
@@ -58,23 +62,27 @@ python 0_workflow.py
 ./classify_voice_pkl.sh
 
 # Manual testing with specific scripts
-python mlp_control_workflow/validations/classify_voice_onnx.py
-python mlp_control_workflow/validations/classify_voice_pkl.py
-python mlp_control_workflow/validations/record_phonemes_cli.py
+python workflows/mlp_control_workflow/validations/classify_voice_onnx.py
+python workflows/mlp_control_workflow/validations/classify_voice_pkl.py
+python workflows/mlp_control_workflow/validations/record_phonemes_cli.py
 ```
 
 ### Code Quality
 
 ```bash
 # Lint check (configured in .flake8)
-flake8 mlp_control_workflow/
+flake8 workflows/mlp_control_workflow/
 ```
 
 ## Architecture Overview
 
-### Core Workflow Pipeline
+### Workflow Structure
 
-The main workflow (`0_workflow.py`) orchestrates 13 sequential steps:
+Both workflows (`workflows/mlp_control_workflow/0_workflow.py` and `workflows/ctc_w2v2_workflow/0_workflow.py`) use a shared execution framework from `workflows/shared/workflow_executor.py` for consistent step-by-step execution, timing, and error handling.
+
+### MLP Control Workflow Pipeline
+
+The MLP workflow (`workflows/mlp_control_workflow/0_workflow.py`) orchestrates 13 sequential steps:
 
 1. **Data Cleanup** - Cleans previous dist/ outputs
 2. **Data Preparation** - Organizes recordings from multiple sources and applies audio augmentation
@@ -85,6 +93,16 @@ The main workflow (`0_workflow.py`) orchestrates 13 sequential steps:
 7. **Benchmarking** - Performance testing and model saving
 8. **Model Export** - Traces PyTorch models and exports to ONNX
 9. **Unreal Integration** - Copies models to Unreal Engine project
+
+### CTC Wav2Vec2 Workflow Pipeline
+
+The CTC workflow (`workflows/ctc_w2v2_workflow/0_workflow.py`) orchestrates 5 sequential steps:
+
+1. **Cleanup previous CTC outputs** - Cleans previous dist/ outputs
+2. **Prepare audio dataset for CTC** - Organizes recordings and applies augmentation
+3. **Extract temporal embeddings** - Preserves sequence information for CTC training
+4. **Train CTC classifier** - Trains sequence-to-sequence CTC model
+5. **Test CTC inference system** - Validates CTC model functionality
 
 ### Key Components
 
@@ -108,9 +126,12 @@ recordings/ → organized_recordings/ → phoneme_embeddings/ → classifier.pkl
 
 ### Directory Structure
 
-- `mlp_control_workflow/` - Main pipeline scripts (s0-s12)
-- `mlp_control_workflow/utils/` - Audio processing utilities
-- `mlp_control_workflow/validations/` - Testing and validation scripts
+- `workflows/mlp_control_workflow/` - MLP pipeline scripts (s0-s12) and `0_workflow.py`
+- `workflows/mlp_control_workflow/utils/` - Audio processing utilities
+- `workflows/mlp_control_workflow/validations/` - Testing and validation scripts
+- `workflows/ctc_w2v2_workflow/` - CTC pipeline scripts and `0_workflow.py`
+- `workflows/ctc_w2v2_workflow/validations/` - CTC testing and validation scripts
+- `workflows/shared/` - Shared workflow execution utilities
 - `recordings/` - Source audio data (phoneme recordings by speaker)
 - `dist/` - Generated outputs (models, embeddings, visualizations)
 - `logs/` - Workflow execution logs with timestamps

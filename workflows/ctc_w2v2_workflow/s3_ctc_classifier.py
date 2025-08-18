@@ -12,29 +12,15 @@ import pickle
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from collections import Counter
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple
 import argparse
 
-# Import PyTorch components (with fallback handling)
-try:
-    import torch
-    import torch.nn as nn
-    import torch.optim as optim
-    from torch.utils.data import Dataset, DataLoader
-    from torch.nn.utils.rnn import pad_sequence
-    TORCH_AVAILABLE = True
-except ImportError:
-    TORCH_AVAILABLE = False
-    print("⚠️ PyTorch not available. CTC training will be skipped.")
-
-# Import our CTC model
-if TORCH_AVAILABLE:
-    try:
-        from models.ctc_model import CTCModel, create_ctc_model
-    except ImportError:
-        print("⚠️ CTC model not available. Please ensure models/ctc_model.py exists.")
-        TORCH_AVAILABLE = False
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader
+from torch.nn.utils.rnn import pad_sequence
+from models.ctc_model import create_ctc_model
 
 
 class PhonemeDataset(Dataset):
@@ -364,12 +350,6 @@ def ctc_classifier_training(
         num_epochs: Number of training epochs
         batch_size: Batch size
     """
-    if not TORCH_AVAILABLE:
-        print("❌ PyTorch not available. Skipping CTC training.")
-        print("   To enable CTC training, install PyTorch:")
-        print("   pip install torch transformers")
-        return
-    
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
     

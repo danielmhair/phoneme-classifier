@@ -8,7 +8,7 @@ Successfully implemented CTC (Connectionist Temporal Classification) for phoneme
 
 ### Core CTC Components
 
-- **`mlp_control_workflow/models/ctc_model.py`** - Complete CTC architecture
+- **`workflows/mlp_control_workflow/models/ctc_model.py`** - Complete CTC architecture
   - `CTCModel` with Wav2Vec2 feature extraction, LSTM sequence encoding, and CTC head
     - **LSTM (Long Short-Term Memory)**: A type of recurrent neural network that processes sequences by maintaining memory of previous inputs, ideal for temporal data like speech
   - Supports both training and inference modes
@@ -21,17 +21,17 @@ Successfully implemented CTC (Connectionist Temporal Classification) for phoneme
       - Cons: Can get stuck in suboptimal sequences, no way to recover from early mistakes.
   - Factory function: `create_ctc_model(num_classes=37)`
 
-- **`mlp_control_workflow/s2_extract_embeddings_temporal.py`** - Temporal embedding extraction
+- **`workflows/mlp_control_workflow/s2_extract_embeddings_temporal.py`** - Temporal embedding extraction
   - Preserves temporal sequences instead of mean pooling
   - Backward compatible with existing pipeline
   - Handles variable-length sequences with memory management
 
-- **`mlp_control_workflow/s3_ctc_classifier.py`** - CTC training pipeline
+- **`workflows/mlp_control_workflow/s3_ctc_classifier.py`** - CTC training pipeline
   - Complete PyTorch training loop with validation
   - Custom dataset class for CTC data handling
   - Model checkpointing and artifact saving
 
-- **`mlp_control_workflow/validations/classify_voice_ctc.py`** - CTC inference validation
+- **`workflows/mlp_control_workflow/validations/classify_voice_ctc.py`** - CTC inference validation
   - Real-time phoneme sequence classification
   - Interactive mode for testing
   - File-based inference support
@@ -50,7 +50,7 @@ Successfully implemented CTC (Connectionist Temporal Classification) for phoneme
 
 ### Workflow Integration
 
-- **`mlp_control_workflow/0_workflow.py`** - Updated main workflow
+- **`workflows/mlp_control_workflow/0_workflow.py`** - Updated main workflow
   - Added CTC training steps with environment variable control
   - `ENABLE_CTC=true` enables parallel CTC and MLP training
   - Maintains backward compatibility
@@ -109,14 +109,14 @@ Successfully implemented CTC (Connectionist Temporal Classification) for phoneme
 
 ```bash
 export ENABLE_CTC=true
-cd mlp_control_workflow
+cd workflows/mlp_control_workflow
 python 0_workflow.py
 ```
 
 ### 2. Train CTC Separately
 
 ```bash
-cd mlp_control_workflow
+cd workflows/mlp_control_workflow
 python s2_extract_embeddings_temporal.py
 python s3_ctc_classifier.py
 ```
@@ -125,7 +125,7 @@ python s3_ctc_classifier.py
 
 ```bash
 # Interactive mode
-cd mlp_control_workflow
+cd workflows/mlp_control_workflow
 python validations/classify_voice_ctc.py
 
 # File mode
