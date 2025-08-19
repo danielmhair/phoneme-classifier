@@ -1,6 +1,7 @@
 **/__pycache__
 */tmpmodel
 */.env
+**/.serena
 .env
 recorded_audio.wav
 temp_audio.wav

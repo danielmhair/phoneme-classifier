@@ -46,6 +46,7 @@ phoneme-classifier/
 ## 🚀 Usage - Two Separate Workflows
 
 ### 1. MLP Workflow (Original)
+
 ```bash
 cd workflows/mlp_control_workflow
 python 0_workflow.py
@@ -53,6 +54,7 @@ python 0_workflow.py
 ```
 
 ### 2. CTC Workflow (New)
+
 ```bash
 cd workflows/ctc_w2v2_workflow
 pip install -r requirements.txt
@@ -63,12 +65,14 @@ python ctc_workflow.py
 ## 🔄 Workflow Separation Benefits
 
 ### Clean Architecture
+
 - **No mixing**: MLP and CTC workflows are completely separate
 - **Independent dependencies**: Each has its own requirements.txt
 - **Clear purpose**: Each directory has a single, focused responsibility
 - **Easy switching**: Use MLP for single phonemes, CTC for sequences
 
 ### Development Advantages
+
 - **Parallel development**: Teams can work on MLP and CTC independently
 - **Dependency isolation**: PyTorch only needed for CTC workflow
 - **Testing isolation**: Test each approach separately
@@ -89,14 +93,16 @@ python ctc_workflow.py
 
 ## 🎛️ How to Choose
 
-### Use MLP Workflow When:
+### Use MLP Workflow When
+
 - Single phoneme classification is sufficient
 - Fast inference is critical
 - Limited compute resources
 - Simple deployment requirements
 - Existing sklearn infrastructure
 
-### Use CTC Workflow When:
+### Use CTC Workflow When
+
 - Need phoneme sequence recognition
 - Want alignment-free training
 - Have temporal speech data
@@ -106,6 +112,7 @@ python ctc_workflow.py
 ## 🔧 Quick Start
 
 ### MLP (Single Phonemes)
+
 ```bash
 cd workflows/mlp_control_workflow
 python 0_workflow.py                    # Train MLP
@@ -113,6 +120,7 @@ python validations/classify_voice_pkl.py  # Test
 ```
 
 ### CTC (Phoneme Sequences)
+
 ```bash
 cd workflows/ctc_w2v2_workflow
 pip install -r requirements.txt        # Install PyTorch deps
@@ -123,6 +131,7 @@ python validations/classify_voice_ctc.py # Test
 ## 🧪 Testing Both Approaches
 
 ### Compare Performance
+
 ```bash
 # Test MLP
 cd workflows/mlp_control_workflow
@@ -134,6 +143,7 @@ python validations/classify_voice_ctc.py
 ```
 
 ### Run Tests
+
 ```bash
 # MLP tests (if available)
 cd workflows/mlp_control_workflow
@@ -147,11 +157,13 @@ python test_ctc_model.py
 ## 📋 Dependencies
 
 ### MLP Workflow Dependencies
+
 ```bash
 pip install scikit-learn numpy transformers soundfile
 ```
 
 ### CTC Workflow Dependencies
+
 ```bash
 cd workflows/ctc_w2v2_workflow
 pip install -r requirements.txt
@@ -161,6 +173,7 @@ pip install -r requirements.txt
 ## 🎭 Graceful Fallbacks
 
 Both workflows include graceful fallbacks:
+
 - **Missing dependencies**: Clear error messages with install instructions
 - **Mock modes**: Test functionality without full dependencies
 - **Error handling**: Robust error handling and logging
