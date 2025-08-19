@@ -15,7 +15,7 @@ For Epic 1 - Live Phoneme CTCs (your current focus), use this command structure:
   /design --api --seq --ultrathink --persona-backend
   # Designs the live streaming phoneme CTC architecture
   
-  /build --feature --tdd --persona-backend --c7
+  /clear --c7
   # Implements next feature with test-driven development
   ```
   
