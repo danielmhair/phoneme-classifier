@@ -11,7 +11,7 @@ import traceback
 from typing import List, Tuple, Callable
 
 
-def execute_workflow_steps(steps: List[Tuple[str, Callable, ...]], workflow_name: str = "Workflow") -> float:
+def execute_workflow_steps(steps: List[Tuple[str, Callable]], workflow_name: str = "Workflow"):
     """
     Execute a list of workflow steps with timing and error handling.
 

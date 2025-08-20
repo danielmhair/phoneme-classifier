@@ -1,0 +1,322 @@
+[tool.poetry]
+name = "phoneme-classifier"
+version = "0.1.0"
+description = "AI-powered phoneme classification system for children's speech recognition using Wav2Vec2 and CTC/MLP approaches"
+authors = ["Phoneme Classifier Team"]
+readme = "README.md"
+packages = [{include = "workflows"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+# Core ML/DL Framework
+torch = ">=2.0.0"
+transformers = {extras = ["torch"], version = "4.50.3"}
+accelerate = ">=0.26.0"
+
+# Audio Processing
+soundfile = "^0.12.0"
+sounddevice = "^0.4.0"
+librosa = "^0.10.0"
+resampy = "^0.4.0"
+pydub = "^0.25.0"
+audiomentations = "*"
+torchaudio = "^2.0.0"
+
+# Data Science
+pandas = "^2.0.0"
+numpy = "^1.24.0"
+scikit-learn = "^1.3.0"
+datasets = {extras = ["audio"], version = "^2.14.0"}
+
+# Visualization
+matplotlib = "^3.7.0"
+seaborn = "^0.12.0"
+umap-learn = "^0.5.0"
+
+# Model Deployment
+onnx = "^1.15.0"
+onnxruntime = "^1.16.0"
+
+# Web API
+fastapi = "^0.104.0"
+uvicorn = "^0.24.0"
+python-multipart = "^0.0.6"
+
+# Speech Processing & Alignment
+phonemizer = "^3.2.0"
+montreal-forced-aligner = "^3.1.0"
+praat-parselmouth = "^0.4.0"
+
+# Utilities
+protobuf = "^4.25.0"
+openai-whisper = "^20231117"
+pronouncing = "^0.2.0"
+
+[tool.poetry.group.dev.dependencies]
+poethepoet = "^0.18.0"
+flake8 = "^6.1.0"
+black = "^23.12.0"
+isort = "^5.13.0"
+
+# PyTorch CUDA Support
+[[tool.poetry.source]]
+name = "pytorch-cu118"
+url = "https://download.pytorch.org/whl/cu118"
+priority = "explicit"
+
+[tool.poe]
+poetry_command = ""
+
+[tool.poe.tasks]
+# =============================================================================
+# SETUP & INSTALLATION TASKS
+# =============================================================================
+
+[tool.poe.tasks.install]
+help = "Install all dependencies"
+cmd = "poetry install"
+
+[tool.poe.tasks.install-dev]
+help = "Install all dependencies including dev tools"
+cmd = "poetry install --with dev"
+
+[tool.poe.tasks.setup-cuda]
+help = "Install PyTorch with CUDA 11.8 support"
+cmd = "poetry source add --priority=explicit pytorch-cu118 https://download.pytorch.org/whl/cu118 && poetry add --source pytorch-cu118 torch torchvision torchaudio"
+
+[tool.poe.tasks.setup]
+help = "Complete setup: install dependencies and CUDA support"
+sequence = ["install-dev", "setup-cuda"]
+
+# =============================================================================
+# TRAINING WORKFLOW TASKS
+# =============================================================================
+
+[tool.poe.tasks.train-mlp]
+help = "Run MLP Control Workflow (traditional classifier)"
+cmd = "python workflows/mlp_control_workflow/0_workflow.py"
+
+[tool.poe.tasks.train-ctc]
+help = "Run CTC Wav2Vec2 Workflow (sequence modeling)"
+cmd = "python workflows/ctc_w2v2_workflow/0_workflow.py"
+
+[tool.poe.tasks.train-all]
+help = "Run both MLP and CTC workflows sequentially"
+sequence = ["train-mlp", "train-ctc"]
+
+# =============================================================================
+# TESTING & VALIDATION TASKS
+# =============================================================================
+
+[tool.poe.tasks.test-pkl]
+help = "Test pickle model inference (MLP workflow)"
+cmd = "python workflows/mlp_control_workflow/validations/classify_voice_pkl.py"
+
+[tool.poe.tasks.test-onnx]
+help = "Test ONNX model inference (MLP workflow)"
+cmd = "python workflows/mlp_control_workflow/validations/classify_voice_onnx.py"
+
+[tool.poe.tasks.test-ctc]
+help = "Test CTC model inference (CTC workflow)"
+cmd = "python workflows/ctc_w2v2_workflow/validations/classify_voice_ctc.py"
+
+[tool.poe.tasks.test-all]
+help = "Run all model tests (PKL, ONNX, CTC)"
+sequence = ["test-pkl", "test-onnx", "test-ctc"]
+
+[tool.poe.tasks.record-cli]
+help = "Interactive phoneme recording CLI"
+cmd = "python workflows/mlp_control_workflow/validations/record_phonemes_cli.py"
+
+# =============================================================================
+# DEVELOPMENT & DEBUGGING TASKS  
+# =============================================================================
+
+[tool.poe.tasks.debug-shared]
+help = "Test shared utilities import"
+cmd = "python -c \"from workflows.shared.s0_s1_shared_utils import prepare_wav_files_clean, cleanup_dist; print('Import successful')\""
+
+[tool.poe.tasks.debug-mlp]
+help = "Test MLP workflow imports"
+cmd = "python workflows/mlp_control_workflow/models/test_imports.py"
+
+[tool.poe.tasks.debug-ctc]
+help = "Test CTC model structure"
+cmd = "python workflows/ctc_w2v2_workflow/models/ctc_model.py"
+
+# =============================================================================
+# CODE QUALITY TASKS
+# =============================================================================
+
+[tool.poe.tasks.lint]
+help = "Run flake8 linting on entire project"
+cmd = "flake8 workflows/ --count --select=E9,F63,F7,F82 --show-source --statistics"
+
+[tool.poe.tasks.lint-mlp]
+help = "Lint MLP workflow only"  
+cmd = "flake8 workflows/mlp_control_workflow/ --count --select=E9,F63,F7,F82 --show-source --statistics"
+
+[tool.poe.tasks.lint-ctc]
+help = "Lint CTC workflow only"
+cmd = "flake8 workflows/ctc_w2v2_workflow/ --count --select=E9,F63,F7,F82 --show-source --statistics"
+
+[tool.poe.tasks.format]
+help = "Format code with black and isort"
+sequence = [
+    {cmd = "black workflows/ --line-length 88"},
+    {cmd = "isort workflows/ --profile black"}
+]
+
+[tool.poe.tasks.format-check]
+help = "Check code formatting without making changes"
+sequence = [
+    {cmd = "black workflows/ --check --line-length 88"},
+    {cmd = "isort workflows/ --check-only --profile black"}
+]
+
+# =============================================================================
+# CLEANUP & MAINTENANCE TASKS
+# =============================================================================
+
+[tool.poe.tasks.clean]
+help = "Clean build artifacts, logs, and cache"
+shell = '''
+rm -rf logs/*.txt
+rm -rf dist/__pycache__
+rm -rf workflows/**/__pycache__
+rm -rf .pytest_cache
+rm -rf *.egg-info
+echo "🧹 Cleaned build artifacts and logs"
+'''
+
+[tool.poe.tasks.clean-models]
+help = "Clean generated models and embeddings" 
+shell = '''
+rm -rf dist/*.pkl
+rm -rf dist/*.pt  
+rm -rf dist/*.onnx
+rm -rf dist/phoneme_embeddings*
+rm -rf dist/organized_recordings*
+echo "🗑️  Cleaned generated models and data"
+'''
+
+[tool.poe.tasks.clean-all]
+help = "Deep clean: artifacts, models, and Poetry cache"
+sequence = ["clean", "clean-models"]
+
+# =============================================================================
+# MODEL EXPORT & DEPLOYMENT TASKS
+# =============================================================================
+
+[tool.poe.tasks.export-models]
+help = "Export models to ONNX format"
+sequence = [
+    {cmd = "python workflows/mlp_control_workflow/s10_onnx_export.py"},
+    {cmd = "python workflows/mlp_control_workflow/s11_onnx_test.py"}
+]
+
+[tool.poe.tasks.show-models]
+help = "Show available trained models"
+shell = '''
+echo "📦 Available Models:"
+ls -la dist/*.pkl dist/*.pt dist/*.onnx 2>/dev/null || echo "No models found. Run 'poe train-mlp' or 'poe train-ctc' first."
+'''
+
+# =============================================================================
+# WORKFLOW SHORTCUTS & COMBINATIONS
+# =============================================================================
+
+[tool.poe.tasks.dev]
+help = "Development workflow: setup + train MLP + test"
+sequence = ["setup", "train-mlp", "test-pkl"]
+
+[tool.poe.tasks.full-pipeline]
+help = "Complete pipeline: train both workflows and test all models"
+sequence = ["train-all", "test-all", "export-models"]
+
+[tool.poe.tasks.quick-test]
+help = "Quick validation: test shared imports and run basic MLP inference"
+sequence = ["debug-shared", "test-pkl"]
+
+# =============================================================================
+# HELP & INFO TASKS  
+# =============================================================================
+
+[tool.poe.tasks.info]
+help = "Show project information and available workflows"
+shell = '''
+echo "🎯 Phoneme Classifier Project"
+echo "=============================="
+echo ""
+echo "📋 Available Workflows:"
+echo "  • MLP Control: Traditional phoneme classification"
+echo "  • CTC Wav2Vec2: Sequence-aware phoneme recognition"
+echo ""  
+echo "🚀 Quick Start:"
+echo "  poe setup          # Install dependencies"
+echo "  poe train-mlp      # Train MLP workflow"
+echo "  poe test-pkl       # Test trained model"
+echo ""
+echo "📚 Documentation: ./docs/ and CLAUDE.md"
+echo "🎮 Interactive: poe record-cli"
+'''
+
+[tool.poe.tasks.workflows]
+help = "List available workflow commands"
+shell = '''
+echo "🔄 Training Workflows:"
+echo "  poe train-mlp     - MLP Control Workflow"
+echo "  poe train-ctc     - CTC Wav2Vec2 Workflow"
+echo "  poe train-all     - Run both workflows"
+echo ""
+echo "🧪 Testing Commands:"
+echo "  poe test-pkl      - Test pickle models"
+echo "  poe test-onnx     - Test ONNX models"
+echo "  poe test-ctc      - Test CTC models"
+echo "  poe test-all      - Run all tests"
+'''
+
+# Black configuration
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# isort configuration  
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["workflows"]
+
+# Flake8 configuration
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "dist",
+    "build",
+    ".venv",
+    ".eggs",
+    "*.egg-info",
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

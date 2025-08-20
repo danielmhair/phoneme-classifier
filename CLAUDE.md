@@ -4,52 +4,94 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a phoneme classification system that trains AI models to classify speech phonemes from children's voices.
+This is a phoneme classification system that trains AI models to classify speech phonemes from children's voices. The project uses **Poetry** for dependency management and **poethepoetry (poe)** for task execution.
 
-## Development Commands
+## Quick Start
 
-### Environment Setup
+### Initial Setup
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Install Poetry (if not already installed)
+curl -sSL https://install.python-poetry.org | python3 -
 
-# Additional PyTorch installation for CUDA (if needed)
-pip install torch --extra-index-url https://download.pytorch.org/whl/cu118
+# Install all dependencies and CUDA support
+poe setup
+
+# Or step by step:
+poetry install                    # Install dependencies
+poetry add --group dev poethepoet    # Install poe task runner
+poe setup-cuda                   # Install PyTorch with CUDA
 ```
 
-### Data Preparation and Training
+### Training Workflows
 
 ```bash
-# Run the MLP control workflow (traditional classifier)
-cd workflows/mlp_control_workflow
-python 0_workflow.py
+# MLP Control Workflow (traditional classifier)
+poe train-mlp
 
-# Run the CTC Wav2Vec2 workflow (sequence modeling)
-cd workflows/ctc_w2v2_workflow
-python 0_workflow.py
+# CTC Wav2Vec2 Workflow (sequence modeling)
+poe train-ctc
+
+# Run both workflows
+poe train-all
 ```
 
 ### Model Testing
 
 ```bash
-# Test with ONNX model
-./classify_voice_onnx.sh
+# Test trained models
+poe test-pkl      # Test pickle model (fast)
+poe test-onnx     # Test ONNX model (deployment)
+poe test-ctc      # Test CTC model (sequences)
+poe test-all      # Run all tests
 
-# Test with pickle model  
-./classify_voice_pkl.sh
-
-# Manual testing with specific scripts
-python workflows/mlp_control_workflow/validations/classify_voice_onnx.py
-python workflows/mlp_control_workflow/validations/classify_voice_pkl.py
-python workflows/mlp_control_workflow/validations/record_phonemes_cli.py
+# Interactive testing
+poe record-cli    # Record and classify phonemes interactively
 ```
 
-### Code Quality
+### Development Tools
 
 ```bash
-# Lint check (configured in .flake8)
-flake8 workflows/mlp_control_workflow/
+# Code quality
+poe lint          # Lint entire project
+poe format        # Format code with black + isort
+poe clean         # Clean build artifacts
+
+# Debugging
+poe debug-shared  # Test shared utilities
+poe debug-mlp     # Test MLP imports
+poe debug-ctc     # Test CTC model structure
+
+# Information
+poe info          # Show project overview
+poe workflows     # List all available tasks
+```
+
+### Development Workflows
+
+```bash
+# Quick development cycle
+poe dev           # Setup + train MLP + test
+
+# Complete pipeline
+poe full-pipeline # Train both + test all + export models
+
+# Quality check
+poe format && poe lint && poe test-all
+```
+
+## Legacy Commands (Still Supported)
+
+For backwards compatibility, the original commands still work:
+
+```bash
+# Traditional approach (deprecated)
+source .venv/bin/activate
+pip install -r requirements.txt
+python workflows/mlp_control_workflow/0_workflow.py
+
+# Modern approach (recommended)
+poe train-mlp
 ```
 
 ## Architecture Overview

@@ -2,10 +2,9 @@
 from pydub import AudioSegment
 import random
 import os
-import random
 import librosa
 import soundfile as sf
-from pydub import AudioSegment
+
 
 def augment_audio(
     input_root="organized_recordings",
