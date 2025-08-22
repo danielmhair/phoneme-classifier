@@ -6,7 +6,7 @@ Successfully implemented and **separated** CTC (Connectionist Temporal Classific
 
 ## 📁 Directory Structure
 
-```
+```text
 phoneme-classifier/
 └── workflows/
     ├── mlp_control_workflow/          # Original MLP workflow (unchanged)

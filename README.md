@@ -150,7 +150,7 @@ Audio Recordings → Wav2Vec2 Features → ML Training → Model Export
 
 This project follows a structured epic-based development approach:
 
-1. **[✅ Live Phoneme CTCs](https://www.notion.so/Epic-Live-Phoneme-CTCs-22b502b4855680149d70eec42adf84d3?pvs=21)** - Real-time CTC implementation
+1. **[🚧 Live Phoneme CTCs](https://www.notion.so/Epic-Live-Phoneme-CTCs-22b502b4855680149d70eec42adf84d3?pvs=21)** - CTC implementation in progress - critical blockers remain
 2. **[Live Streaming Improvements](https://www.notion.so/Epic-Live-Streaming-Improvements-Temporal-Brain-22b502b48556801c86f0f3f5a7036010?pvs=21)** - Temporal processing
 3. **[Whisper Teacher & Distillation](https://www.notion.so/Epic-Whisper-Teacher-Distillation-22b502b4855680da8047e51acd13ef1e?pvs=21)** - Model distillation
 4. **[Multi-Model Bake-off Harness](https://www.notion.so/Epic-Multi-Model-Bake-off-Harness-22b502b485568092ab79fe7ec3901b36?pvs=21)** - Benchmarking
@@ -161,14 +161,13 @@ This project follows a structured epic-based development approach:
 9. **[Evaluation & Progress Gates](https://www.notion.so/Epic-Evaluation-Progress-Gates-22b502b4855680dcb4f3e071691c4957?pvs=21)** - Quality assurance
 10. **[Model Update & Export Pipeline](https://www.notion.so/Epic-Model-Update-Export-Pipeline-22b502b485568049af1fe48dcff0d011?pvs=21)** - Deployment automation
 
-**Current Focus**: Epic 1 (Live Phoneme CTCs) - ✅ **Complete!** Both MLP and CTC workflows operational.
+**Current Focus**: Epic 1 (Live Phoneme CTCs) - 🚧 **IN PROGRESS** - Critical blockers prevent completion. ONNX export to games not achieved.
 
 ## 🎯 Key Features
 
 - **🔥 Two ML Approaches**: Traditional MLP + Modern CTC sequence modeling  
-- **⚡ Fast Training**: MLP workflow trains in minutes
 - **🎵 Audio Processing**: Complete Wav2Vec2 → embeddings → classification pipeline
-- **🎮 Game Integration**: ONNX export for Unreal Engine deployment
+- **🎮 Game Integration**: ONNX export for deployment of Unreal Engine, browser, and mobile games
 - **🧪 Interactive Testing**: Real-time phoneme recording and classification
 - **📊 Rich Visualization**: UMAP plots, confusion matrices, performance metrics
 - **🔄 Cross-Platform**: WSL/Linux training → Windows deployment
