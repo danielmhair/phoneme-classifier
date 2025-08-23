@@ -245,11 +245,11 @@ sequence = ["debug-shared", "test-pkl"]
 
 [tool.poe.tasks.compare-models]
 help = "Compare MLP vs CTC model performance and characteristics"
-cmd = "python workflows/shared/model_comparison.py"
+shell = "PYTHONPATH=$PWD python workflows/shared/model_comparison.py"
 
 [tool.poe.tasks.create-ensemble]
 help = "Create ensemble methods combining MLP and CTC models"
-cmd = "python workflows/shared/ensemble_methods.py"
+shell = "PYTHONPATH=$PWD python workflows/shared/ensemble_methods.py"
 
 [tool.poe.tasks.analyze-models]
 help = "Run comprehensive model analysis (comparison + ensemble)"

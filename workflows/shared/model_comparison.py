@@ -53,8 +53,8 @@ class ModelComparison:
             checkpoint = torch.load(CTC_MODEL_PATH, map_location='cpu')
             if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
                 # Import here to avoid circular imports
-                from workflows.ctc_w2v2_workflow.models.ctc_model import CTCPhonemeClassifier
-                self.ctc_model = CTCPhonemeClassifier(num_classes=len(self._load_phoneme_labels()))
+                from workflows.ctc_w2v2_workflow.models.ctc_model import CTCModel
+                self.ctc_model = CTCModel(num_classes=len(self._load_phoneme_labels()) + 1)  # +1 for blank token
                 self.ctc_model.load_state_dict(checkpoint['model_state_dict'])
             else:
                 self.ctc_model = checkpoint
