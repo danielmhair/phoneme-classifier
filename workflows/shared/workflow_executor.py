@@ -19,8 +19,11 @@ def execute_workflow_steps(steps: List[Tuple[str, Callable]], workflow_name: str
         steps: List of tuples containing (label, function, *optional_params)
         workflow_name: Name of the workflow for logging purposes
     """
+    import sys
+    
     print(f"🚀 Starting {workflow_name} execution...")
     print("=" * 60)
+    sys.stdout.flush()
 
     total_start_time = time.time()
 
@@ -34,6 +37,7 @@ def execute_workflow_steps(steps: List[Tuple[str, Callable]], workflow_name: str
         params = step_data[2:] if len(step_data) > 2 else []
 
         print(f"\n🚀 Starting: {label}...")
+        sys.stdout.flush()
         step_start = time.time()
 
         try:
@@ -44,16 +48,19 @@ def execute_workflow_steps(steps: List[Tuple[str, Callable]], workflow_name: str
         except Exception as e:
             print(f"❌ Failed: {label} - {e}")
             traceback.print_exc()
+            sys.stdout.flush()
             # Continue with next step for robustness
 
         step_end = time.time()
         duration = step_end - step_start
         print(f"✅ Finished: {label} in {duration:.2f} seconds\n")
+        sys.stdout.flush()
 
     total_time = time.time() - total_start_time
     print(f"\n\n🏁 {workflow_name} completed! 🏁")
     print("=" * 40)
     print(f"✅✅ {workflow_name} complete! Total time: {total_time:.2f} seconds ✅✅")
+    sys.stdout.flush()
 
 
 def create_workflow_logger(log_file_path: str):

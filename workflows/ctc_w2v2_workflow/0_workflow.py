@@ -14,20 +14,28 @@ from workflows.shared.workflow_executor import execute_workflow_steps
 from workflows.shared.s0_s1_shared_utils import prepare_wav_files_clean, cleanup_dist
 
 # Import CTC-specific modules
-from s2_extract_embeddings_temporal import extract_embeddings_for_phonemes_temporal
-from s3_ctc_classifier import ctc_classifier_training
+from workflows.ctc_w2v2_workflow.s2_extract_embeddings_temporal import extract_embeddings_for_phonemes_temporal
+from workflows.ctc_w2v2_workflow.s3_ctc_classifier import ctc_classifier_training
 from workflows.shared.s0_s1_shared_utils import ORGANIZED_RECORDINGS_DIR, PHONEME_LABELS_JSON_PATH
 from workflows.ctc_w2v2_workflow import timestamp
 
-PHONEME_EMBEDDINGS_TEMPORAL_DIR = "../dist/phoneme_embeddings_temporal"
-CTC_MODEL_PATH = "../dist/ctc_model_best.pt"
-CTC_LABEL_ENCODER_PATH = "../dist/ctc_label_encoder.pkl"
+PHONEME_EMBEDDINGS_TEMPORAL_DIR = "./dist/phoneme_embeddings_temporal"
+CTC_MODEL_PATH = "./dist/ctc_model_best.pt"
+CTC_LABEL_ENCODER_PATH = "./dist/ctc_label_encoder.pkl"
 
 
 def main():
-    print(f"🎯 CTC Wav2Vec2 Workflow started at: {timestamp}\n")
+    import os
+    
+    # Force unbuffered output for immediate logging
+    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) if hasattr(sys.stdout, 'fileno') else sys.stdout
+    sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 0) if hasattr(sys.stderr, 'fileno') else sys.stderr
+    
+    print(f"🎯 CTC Wav2Vec2 Workflow started at: {timestamp}")
+    print(f"📝 Process ID: {os.getpid()}")
     print("🚀 Epic 1: Live Phoneme CTCs - CTC Implementation")
     print("=" * 60)
+    sys.stdout.flush()
 
     # Define workflow steps
     steps = [
@@ -42,13 +50,13 @@ def main():
     execute_workflow_steps(steps, "CTC Wav2Vec2 Workflow")
     print(f"📁 CTC model saved to: {CTC_MODEL_PATH}")
     print(f"📁 Label encoder saved to: {CTC_LABEL_ENCODER_PATH}")
-
+    
     print("\n🎮 How to test:")
     print("   cd ctc_w2v2_workflow")
     print("   python validations/classify_voice_ctc.py")
     print("   # Or test with file:")
     print("   python validations/classify_voice_ctc.py --file path/to/audio.wav")
-
+    
     print("\n🔬 Compare with MLP:")
     print("   # MLP (existing):")
     print("   cd ../mlp_control_workflow")
@@ -56,8 +64,9 @@ def main():
     print("   # CTC (this workflow):")
     print("   cd ../ctc_w2v2_workflow")
     print("   python validations/classify_voice_ctc.py")
-
+    
     print("✅ Epic 1: Live Phoneme CTCs - Implementation Complete! ✅")
+    sys.stdout.flush()
 
 
 def extract_temporal_embeddings():
@@ -74,7 +83,7 @@ def train_ctc_model():
     """Train CTC classifier."""
     ctc_classifier_training(
         input_dir_str=PHONEME_EMBEDDINGS_TEMPORAL_DIR,
-        output_dir="../dist",
+        output_dir="./dist",
         num_epochs=20,
         batch_size=32
     )

@@ -23,7 +23,18 @@ from workflows.mlp_control_workflow import timestamp
 
 
 def main():
-    print(f"🕐 Workflow started at: {timestamp}\n")
+    import sys
+    import os
+    
+    # Force unbuffered output for immediate logging
+    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) if hasattr(sys.stdout, 'fileno') else sys.stdout
+    sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 0) if hasattr(sys.stderr, 'fileno') else sys.stderr
+    
+    print(f"🕐 Workflow started at: {timestamp}")
+    print(f"📝 Process ID: {os.getpid()}")
+    print(f"🔄 Starting MLP Control Workflow...")
+    print("=" * 60)
+    sys.stdout.flush()
 
     steps = [
         ("Cleanup previous runs", cleanup_dist),

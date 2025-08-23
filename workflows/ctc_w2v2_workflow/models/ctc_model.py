@@ -97,16 +97,17 @@ class CTCModel(nn.Module):
 
     def __init__(
         self,
-        wav2vec_model: str = "facebook/wav2vec2-base",
+        embedding_dim: int = 768,  # Wav2Vec2 base embedding dimension
         hidden_dim: int = 128,
         num_layers: int = 2,
         num_classes: int = 38,
         dropout: float = 0.1
     ):
         super().__init__()
-        self.feature_extractor = Wav2Vec2FeatureExtractor(wav2vec_model)
+        # Use pre-extracted embeddings instead of feature extractor
+        self.embedding_dim = embedding_dim
         self.sequence_encoder = SequenceEncoder(
-            input_dim=self.feature_extractor.feature_dim,
+            input_dim=embedding_dim,
             hidden_dim=hidden_dim,
             num_layers=num_layers,
             dropout=dropout
@@ -128,7 +129,7 @@ class CTCModel(nn.Module):
         Forward pass of CTC model.
 
         Args:
-            input_values: Audio input (batch_size, sequence_length)
+            input_values: Pre-extracted embeddings (batch_size, seq_len, embedding_dim)
             targets: Target phoneme sequences (batch_size, target_length) - optional for inference
             input_lengths: Actual lengths of input sequences - optional
             target_lengths: Actual lengths of target sequences - optional
@@ -138,8 +139,9 @@ class CTCModel(nn.Module):
             - log_probs: CTC log probabilities (batch_size, time_steps, num_classes)
             - loss: CTC loss if targets provided, else None
         """
-        # Extract features
-        features = self.feature_extractor(input_values)
+        # Skip feature extraction - input_values are already embeddings
+        # input_values shape: (batch_size, seq_len, embedding_dim)
+        features = input_values
 
         # Encode sequences
         encoded = self.sequence_encoder(features)
@@ -223,7 +225,7 @@ def create_ctc_model(num_classes: int = 37) -> CTCModel:
         Configured CTCModel instance
     """
     return CTCModel(
-        wav2vec_model="facebook/wav2vec2-base",
+        embedding_dim=768,  # Wav2Vec2 base embedding dimension
         hidden_dim=128,
         num_layers=2,
         num_classes=num_classes + 1,  # +1 for blank token

@@ -3,7 +3,7 @@ from workflows.shared.s0_cleanup import cleanup
 from workflows.shared.s0b_augment_audio import augment_audio
 from workflows.shared.s1_prepare_wav_files import prepare_wav_files, save_metadata, clean_previous_recordings
 
-ROOT_DIR = "../.."
+ROOT_DIR = "."
 
 # Configuration
 RECORDINGS_DIR = f"{ROOT_DIR}/recordings"

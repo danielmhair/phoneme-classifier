@@ -237,8 +237,11 @@ def extract_embeddings_for_phonemes_temporal(
     """
     if enable_ctc:
         print("🔄 CTC mode enabled - preserving temporal sequences")
-        # Use temporal output directory for CTC
-        ctc_output_dir = output_dir.replace("phoneme_embeddings", "phoneme_embeddings_temporal")
+        # Use temporal output directory for CTC (avoid double temporal suffix)
+        if "phoneme_embeddings_temporal" not in output_dir:
+            ctc_output_dir = output_dir.replace("phoneme_embeddings", "phoneme_embeddings_temporal")
+        else:
+            ctc_output_dir = output_dir
         extract_temporal_embeddings(
             input_dir=input_dir,
             output_dir=ctc_output_dir,

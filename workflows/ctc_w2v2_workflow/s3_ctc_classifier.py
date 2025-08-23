@@ -20,7 +20,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
-from models.ctc_model import create_ctc_model
+from workflows.ctc_w2v2_workflow.models.ctc_model import create_ctc_model
 
 
 class PhonemeDataset(Dataset):
@@ -146,10 +146,9 @@ class CTCTrainer:
             # Forward pass
             self.optimizer.zero_grad()
 
-            # Note: For now we use embeddings directly. In full implementation,
-            # we would use audio and extract features in the model
+            # Use pre-extracted embeddings directly
             _, loss = self.model(
-                input_values=embeddings.mean(dim=2),  # Dummy audio input
+                input_values=embeddings,  # Pre-extracted embeddings (batch_size, seq_len, 768)
                 targets=phonemes,
                 input_lengths=embedding_lengths,
                 target_lengths=phoneme_lengths
@@ -185,9 +184,9 @@ class CTCTrainer:
                 phoneme_lengths = batch['phoneme_lengths'].to(self.device)
                 embedding_lengths = batch['embedding_lengths'].to(self.device)
 
-                # Forward pass
+                # Forward pass with pre-extracted embeddings
                 log_probs, loss = self.model(
-                    input_values=embeddings.mean(dim=2),  # Dummy audio input
+                    input_values=embeddings,  # Pre-extracted embeddings
                     targets=phonemes,
                     input_lengths=embedding_lengths,
                     target_lengths=phoneme_lengths
@@ -196,7 +195,7 @@ class CTCTrainer:
                 total_loss += loss.item()
 
                 # Calculate accuracy (simplified for single phoneme)
-                predictions = self.model.predict(embeddings.mean(dim=2))  # type:ignore
+                predictions = self.model.predict(embeddings)  # type:ignore
                 for i, pred in enumerate(predictions):
                     if len(pred) > 0 and pred[0] == phonemes[i, 0].item():
                         correct_predictions += 1

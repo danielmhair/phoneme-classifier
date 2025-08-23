@@ -173,7 +173,7 @@ For issues or questions about the CTC implementation:
 
 1. Check error messages for missing dependencies
 2. Verify file paths and data availability  
-3. Review logs in `../logs/ctc_workflow_log_*.txt`
+3. Review logs in `./logs/ctc_workflow_log_*.txt`
 4. Test with mock mode first (no dependencies required)
 
 ---
