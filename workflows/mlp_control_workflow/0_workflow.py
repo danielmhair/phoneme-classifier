@@ -1,11 +1,12 @@
 # Import centralized paths and workflow modules
 from workflows import (
-    ORGANIZED_RECORDINGS_DIR,
-    PHONEME_EMBEDDINGS_DIR,
-    ORGANIZED_RECORDINGS_LOW_QUALITY,
-    CLEAN_MODEL_PATH,
-    LABEL_ENCODER_PATH,
-    PHONEME_LABELS_JSON_PATH
+    MLP_ORGANIZED_RECORDINGS_DIR,
+    MLP_PHONEME_EMBEDDINGS_DIR,
+    MLP_ORGANIZED_RECORDINGS_LOW_QUALITY,
+    MLP_MODEL_PATH,
+    MLP_LABEL_ENCODER_PATH,
+    MLP_PHONEME_LABELS_JSON_PATH,
+    MLP_DIST_DIR
 )
 from workflows.shared.workflow_executor import execute_workflow_steps
 from workflows.shared.s0_s1_shared_utils import prepare_wav_files_clean, cleanup_dist
@@ -60,45 +61,45 @@ def main():
 
 def extract_embeddings_for_phonemes_clean():
     extract_embeddings_for_phonemes(
-        input_dir=ORGANIZED_RECORDINGS_DIR,
-        output_dir=PHONEME_EMBEDDINGS_DIR,
-        phoneme_label_json_path=PHONEME_LABELS_JSON_PATH,
+        input_dir=MLP_ORGANIZED_RECORDINGS_DIR,
+        output_dir=MLP_PHONEME_EMBEDDINGS_DIR,
+        phoneme_label_json_path=MLP_PHONEME_LABELS_JSON_PATH,
     )
 
 
 def classifier_encoder_clean():
     classifier_encoder(
-        input_dir_str=PHONEME_EMBEDDINGS_DIR,
-        classifier_out=CLEAN_MODEL_PATH,
-        encoder_out=LABEL_ENCODER_PATH
+        input_dir_str=MLP_PHONEME_EMBEDDINGS_DIR,
+        classifier_out=MLP_MODEL_PATH,
+        encoder_out=MLP_LABEL_ENCODER_PATH
     )
 
 
 def visualize_results_clean():
     # TODO: This should be getting the metadata.csv, but I think its saving it during organized_recordings. Is this accurate? Probably, but then we need to pass it into visualize_results
     visualize_results(
-        classifier_path=CLEAN_MODEL_PATH,
-        label_encoder_path=LABEL_ENCODER_PATH,
+        classifier_path=MLP_MODEL_PATH,
+        label_encoder_path=MLP_LABEL_ENCODER_PATH,
         type_name="initial",
-        embeddings_dir=PHONEME_EMBEDDINGS_DIR,
+        embeddings_dir=MLP_PHONEME_EMBEDDINGS_DIR,
     )
 
 
 def analyze_confusion_clean():
     analyze_confusion(
-        classifier_path=CLEAN_MODEL_PATH,
-        label_encoder_path=LABEL_ENCODER_PATH,
-        embeddings_dir=PHONEME_EMBEDDINGS_DIR,
+        classifier_path=MLP_MODEL_PATH,
+        label_encoder_path=MLP_LABEL_ENCODER_PATH,
+        embeddings_dir=MLP_PHONEME_EMBEDDINGS_DIR,
     )
 
 
 def batch_test_phonemes_clean():
     batch_test_phonemes(
-        classifier_path=CLEAN_MODEL_PATH,
-        label_encoder_path=LABEL_ENCODER_PATH,
-        phoneme_label_json_path=PHONEME_LABELS_JSON_PATH,
-        training_recordings_path=ORGANIZED_RECORDINGS_DIR,
-        finetuned_recordings_path=ORGANIZED_RECORDINGS_LOW_QUALITY,
+        classifier_path=MLP_MODEL_PATH,
+        label_encoder_path=MLP_LABEL_ENCODER_PATH,
+        phoneme_label_json_path=MLP_PHONEME_LABELS_JSON_PATH,
+        training_recordings_path=MLP_ORGANIZED_RECORDINGS_DIR,
+        finetuned_recordings_path=MLP_ORGANIZED_RECORDINGS_LOW_QUALITY,
     )
 
 

@@ -171,3 +171,11 @@ The system generates multiple model formats:
 - Cross-platform development (WSL/Linux training, Windows deployment)
 - Real-time audio recording and classification capabilities
 - Support for multiple microphone quality levels in training data
+
+## MCPs for you to use frequently
+- Serena MCP - provides essential semantic code retrieval and editing tools that are akin to an IDE's capabilities, extracting code entities at the symbol level and exploiting relational structure.
+- Context7 MCP - for up-to-date, version-specific documentation for any library or framework
+- Sequentialthinking MCP - for breaking down complex problems into manageable steps and maintaining context across interactions.
+
+## Other important things
+- Always use poetry run to execute scripts, even for python and pip so we know its running in the poetry environment.

@@ -240,6 +240,22 @@ help = "Quick validation: test shared imports and run basic MLP inference"
 sequence = ["debug-shared", "test-pkl"]
 
 # =============================================================================
+# MODEL COMPARISON & ENSEMBLE TASKS
+# =============================================================================
+
+[tool.poe.tasks.compare-models]
+help = "Compare MLP vs CTC model performance and characteristics"
+cmd = "python workflows/shared/model_comparison.py"
+
+[tool.poe.tasks.create-ensemble]
+help = "Create ensemble methods combining MLP and CTC models"
+cmd = "python workflows/shared/ensemble_methods.py"
+
+[tool.poe.tasks.analyze-models]
+help = "Run comprehensive model analysis (comparison + ensemble)"
+sequence = ["compare-models", "create-ensemble"]
+
+# =============================================================================
 # HELP & INFO TASKS  
 # =============================================================================
 
@@ -275,6 +291,11 @@ echo "  poe test-pkl      - Test pickle models"
 echo "  poe test-onnx     - Test ONNX models"
 echo "  poe test-ctc      - Test CTC models"
 echo "  poe test-all      - Run all tests"
+echo ""
+echo "📊 Model Analysis:"
+echo "  poe compare-models - Compare MLP vs CTC performance"
+echo "  poe create-ensemble - Create ensemble methods"
+echo "  poe analyze-models - Complete model analysis"
 '''
 
 # Black configuration
