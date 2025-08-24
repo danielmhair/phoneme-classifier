@@ -15,8 +15,10 @@ LOGS_DIR = PROJECT_ROOT / "logs"
 # Workflow-specific directories
 MLP_WORKFLOW_DIR = WORKFLOWS_DIR / "mlp_control_workflow"
 CTC_WORKFLOW_DIR = WORKFLOWS_DIR / "ctc_w2v2_workflow"
+WAVLM_WORKFLOW_DIR = WORKFLOWS_DIR / "ctc_wavlm_workflow"
 MLP_DIST_DIR = MLP_WORKFLOW_DIR / "dist"
 CTC_DIST_DIR = CTC_WORKFLOW_DIR / "dist"
+WAVLM_DIST_DIR = WAVLM_WORKFLOW_DIR / "dist"
 
 # Legacy shared dist directory (for migration)
 LEGACY_DIST_DIR = PROJECT_ROOT / "dist"
@@ -43,6 +45,15 @@ CTC_LABEL_ENCODER_PATH = CTC_DIST_DIR / "ctc_label_encoder.pkl"
 CTC_PHONEME_LABELS_JSON_PATH = CTC_DIST_DIR / "phoneme_labels.json"
 CTC_ONNX_PATH = CTC_DIST_DIR / "phoneme_ctc.onnx"
 
+# WavLM CTC-specific paths
+WAVLM_ORGANIZED_RECORDINGS_DIR = WAVLM_DIST_DIR / "organized_recordings"
+WAVLM_ORGANIZED_RECORDINGS_LOW_QUALITY = WAVLM_DIST_DIR / "organized_recordings_lower_quality"
+WAVLM_PHONEME_EMBEDDINGS_TEMPORAL_DIR = WAVLM_DIST_DIR / "phoneme_embeddings_temporal"
+WAVLM_MODEL_PATH = WAVLM_DIST_DIR / "ctc_model_best.pt"
+WAVLM_LABEL_ENCODER_PATH = WAVLM_DIST_DIR / "ctc_label_encoder.pkl"
+WAVLM_PHONEME_LABELS_JSON_PATH = WAVLM_DIST_DIR / "phoneme_labels.json"
+WAVLM_ONNX_PATH = WAVLM_DIST_DIR / "phoneme_ctc.onnx"
+
 # Shared paths (for backward compatibility - use workflow-specific paths for new code)
 ORGANIZED_RECORDINGS_DIR = MLP_ORGANIZED_RECORDINGS_DIR
 ORGANIZED_RECORDINGS_LOW_QUALITY = MLP_ORGANIZED_RECORDINGS_LOW_QUALITY
@@ -57,6 +68,7 @@ PHONEME_MLP_ONNX_PATH = MLP_PHONEME_ONNX_PATH
 # Ensure directories exist
 MLP_DIST_DIR.mkdir(exist_ok=True)
 CTC_DIST_DIR.mkdir(exist_ok=True)
+WAVLM_DIST_DIR.mkdir(exist_ok=True)
 LOGS_DIR.mkdir(exist_ok=True)
 
 # Convert to strings for backward compatibility with existing code
@@ -78,6 +90,15 @@ CTC_MODEL_PATH = str(CTC_MODEL_PATH)
 CTC_LABEL_ENCODER_PATH = str(CTC_LABEL_ENCODER_PATH)
 CTC_PHONEME_LABELS_JSON_PATH = str(CTC_PHONEME_LABELS_JSON_PATH)
 CTC_ONNX_PATH = str(CTC_ONNX_PATH)
+
+# WavLM CTC-specific string paths
+WAVLM_ORGANIZED_RECORDINGS_DIR = str(WAVLM_ORGANIZED_RECORDINGS_DIR)
+WAVLM_ORGANIZED_RECORDINGS_LOW_QUALITY = str(WAVLM_ORGANIZED_RECORDINGS_LOW_QUALITY)
+WAVLM_PHONEME_EMBEDDINGS_TEMPORAL_DIR = str(WAVLM_PHONEME_EMBEDDINGS_TEMPORAL_DIR)
+WAVLM_MODEL_PATH = str(WAVLM_MODEL_PATH)
+WAVLM_LABEL_ENCODER_PATH = str(WAVLM_LABEL_ENCODER_PATH)
+WAVLM_PHONEME_LABELS_JSON_PATH = str(WAVLM_PHONEME_LABELS_JSON_PATH)
+WAVLM_ONNX_PATH = str(WAVLM_ONNX_PATH)
 
 # Version info
 __version__ = "0.2.0"
@@ -109,4 +130,17 @@ def get_ctc_paths():
         'label_encoder_path': str(CTC_LABEL_ENCODER_PATH),
         'phoneme_labels_json': str(CTC_PHONEME_LABELS_JSON_PATH),
         'ctc_onnx': str(CTC_ONNX_PATH),
+    }
+
+def get_wavlm_paths():
+    """Get all WavLM CTC-specific paths as a dictionary."""
+    return {
+        'dist_dir': str(WAVLM_DIST_DIR),
+        'organized_recordings': str(WAVLM_ORGANIZED_RECORDINGS_DIR),
+        'organized_recordings_low_quality': str(WAVLM_ORGANIZED_RECORDINGS_LOW_QUALITY),
+        'phoneme_embeddings_temporal': str(WAVLM_PHONEME_EMBEDDINGS_TEMPORAL_DIR),
+        'model_path': str(WAVLM_MODEL_PATH),
+        'label_encoder_path': str(WAVLM_LABEL_ENCODER_PATH),
+        'phoneme_labels_json': str(WAVLM_PHONEME_LABELS_JSON_PATH),
+        'wavlm_onnx': str(WAVLM_ONNX_PATH),
     }

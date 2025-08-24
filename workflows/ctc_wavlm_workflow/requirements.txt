@@ -1,0 +1,25 @@
+# CTC Wav2Vec2 Workflow Requirements
+# Dependencies for CTC (Connectionist Temporal Classification) phoneme recognition
+
+# Core PyTorch and ML
+torch>=2.0.0
+transformers>=4.11.0
+soundfile
+numpy
+pandas
+
+# Audio processing
+librosa
+sounddevice
+audiomentations
+
+# Utilities
+scikit-learn
+matplotlib
+seaborn
+
+# Optional: CUDA support (uncomment if using GPU)
+# torch --extra-index-url https://download.pytorch.org/whl/cu118
+
+# Note: Install with:
+# pip install -r requirements.txt

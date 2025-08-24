@@ -1,0 +1,9 @@
+{
+  "timestamp": "2025-08-23 18:13:16",
+  "empirical_ranking": [
+    {
+      "rank": 1,
+      "model": "wav2vec2_ctc",
+      "accuracy": 0.87,
+      "accuracy_percent": "87.00%",
+      "correct": 

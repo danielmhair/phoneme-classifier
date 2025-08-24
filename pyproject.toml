@@ -101,9 +101,17 @@ cmd = "python workflows/mlp_control_workflow/0_workflow.py"
 help = "Run CTC Wav2Vec2 Workflow (sequence modeling)"
 cmd = "python workflows/ctc_w2v2_workflow/0_workflow.py"
 
+[tool.poe.tasks.train-wavlm-ctc]
+help = "Run WavLM CTC Workflow (advanced sequence modeling)"
+cmd = "python workflows/ctc_wavlm_workflow/0_workflow.py"
+
 [tool.poe.tasks.train-all]
-help = "Run both MLP and CTC workflows sequentially"
-sequence = ["train-mlp", "train-ctc"]
+help = "Run all workflows: MLP, Wav2Vec2 CTC, and WavLM CTC"
+sequence = ["train-mlp", "train-ctc", "train-wavlm-ctc"]
+
+[tool.poe.tasks.train-ctc-all]
+help = "Run both CTC workflows (Wav2Vec2 and WavLM)"
+sequence = ["train-ctc", "train-wavlm-ctc"]
 
 # =============================================================================
 # TESTING & VALIDATION TASKS
@@ -118,12 +126,20 @@ help = "Test ONNX model inference (MLP workflow)"
 cmd = "python workflows/mlp_control_workflow/validations/classify_voice_onnx.py"
 
 [tool.poe.tasks.test-ctc]
-help = "Test CTC model inference (CTC workflow)"
+help = "Test CTC model inference (Wav2Vec2 CTC workflow)"
 cmd = "python workflows/ctc_w2v2_workflow/validations/classify_voice_ctc.py"
 
+[tool.poe.tasks.test-wavlm-ctc]
+help = "Test WavLM CTC model inference (WavLM CTC workflow)"
+cmd = "python workflows/ctc_wavlm_workflow/validations/classify_voice_ctc.py"
+
+[tool.poe.tasks.test-ctc-all]
+help = "Test both CTC models (Wav2Vec2 and WavLM)"
+sequence = ["test-ctc", "test-wavlm-ctc"]
+
 [tool.poe.tasks.test-all]
-help = "Run all model tests (PKL, ONNX, CTC)"
-sequence = ["test-pkl", "test-onnx", "test-ctc"]
+help = "Run all model tests (PKL, ONNX, Wav2Vec2 CTC, WavLM CTC)"
+sequence = ["test-pkl", "test-onnx", "test-ctc", "test-wavlm-ctc"]
 
 [tool.poe.tasks.record-cli]
 help = "Interactive phoneme recording CLI"
@@ -142,8 +158,16 @@ help = "Test MLP workflow imports"
 cmd = "python workflows/mlp_control_workflow/models/test_imports.py"
 
 [tool.poe.tasks.debug-ctc]
-help = "Test CTC model structure"
+help = "Test Wav2Vec2 CTC model structure"
 cmd = "python workflows/ctc_w2v2_workflow/models/ctc_model.py"
+
+[tool.poe.tasks.debug-wavlm-ctc]
+help = "Test WavLM CTC model structure"
+cmd = "python workflows/ctc_wavlm_workflow/models/ctc_model.py"
+
+[tool.poe.tasks.debug-all-ctc]
+help = "Debug both CTC model structures"
+sequence = ["debug-ctc", "debug-wavlm-ctc"]
 
 # =============================================================================
 # CODE QUALITY TASKS
@@ -158,8 +182,16 @@ help = "Lint MLP workflow only"
 cmd = "flake8 workflows/mlp_control_workflow/ --count --select=E9,F63,F7,F82 --show-source --statistics"
 
 [tool.poe.tasks.lint-ctc]
-help = "Lint CTC workflow only"
+help = "Lint Wav2Vec2 CTC workflow only"
 cmd = "flake8 workflows/ctc_w2v2_workflow/ --count --select=E9,F63,F7,F82 --show-source --statistics"
+
+[tool.poe.tasks.lint-wavlm-ctc]
+help = "Lint WavLM CTC workflow only"
+cmd = "flake8 workflows/ctc_wavlm_workflow/ --count --select=E9,F63,F7,F82 --show-source --statistics"
+
+[tool.poe.tasks.lint-ctc-all]
+help = "Lint both CTC workflows (Wav2Vec2 and WavLM)"
+sequence = ["lint-ctc", "lint-wavlm-ctc"]
 
 [tool.poe.tasks.format]
 help = "Format code with black and isort"
@@ -268,6 +300,7 @@ echo ""
 echo "📋 Available Workflows:"
 echo "  • MLP Control: Traditional phoneme classification"
 echo "  • CTC Wav2Vec2: Sequence-aware phoneme recognition"
+echo "  • CTC WavLM: Advanced sequence-aware phoneme recognition"
 echo ""  
 echo "🚀 Quick Start:"
 echo "  poe setup          # Install dependencies"
@@ -282,15 +315,19 @@ echo "🎮 Interactive: poe record-cli"
 help = "List available workflow commands"
 shell = '''
 echo "🔄 Training Workflows:"
-echo "  poe train-mlp     - MLP Control Workflow"
-echo "  poe train-ctc     - CTC Wav2Vec2 Workflow"
-echo "  poe train-all     - Run both workflows"
+echo "  poe train-mlp        - MLP Control Workflow"
+echo "  poe train-ctc        - CTC Wav2Vec2 Workflow"
+echo "  poe train-wavlm-ctc  - CTC WavLM Workflow"
+echo "  poe train-ctc-all    - Run both CTC workflows"
+echo "  poe train-all        - Run all workflows"
 echo ""
 echo "🧪 Testing Commands:"
-echo "  poe test-pkl      - Test pickle models"
-echo "  poe test-onnx     - Test ONNX models"
-echo "  poe test-ctc      - Test CTC models"
-echo "  poe test-all      - Run all tests"
+echo "  poe test-pkl         - Test pickle models"
+echo "  poe test-onnx        - Test ONNX models"
+echo "  poe test-ctc         - Test Wav2Vec2 CTC models"
+echo "  poe test-wavlm-ctc   - Test WavLM CTC models"
+echo "  poe test-ctc-all     - Test both CTC models"
+echo "  poe test-all         - Run all tests"
 echo ""
 echo "📊 Model Analysis:"
 echo "  poe compare-models - Compare MLP vs CTC performance"

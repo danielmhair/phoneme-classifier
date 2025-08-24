@@ -90,7 +90,8 @@ class ModelComparison:
         
         # MLP characteristics
         if self.mlp_model:
-            mlp_params = sum(p.numel() for p in self.mlp_model.coefs_[0].flatten()) if hasattr(self.mlp_model, 'coefs_') else 0
+            # Fix: Use numpy size instead of PyTorch numel() for scikit-learn models
+            mlp_params = sum(layer.size for layer in self.mlp_model.coefs_) if hasattr(self.mlp_model, 'coefs_') else 0
             characteristics['mlp'] = {
                 'type': 'MLPClassifier (scikit-learn)',
                 'parameters': mlp_params,
