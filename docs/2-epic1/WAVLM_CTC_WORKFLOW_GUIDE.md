@@ -4,7 +4,7 @@
 
 ## Overview
 
-The WavLM CTC workflow represents the state-of-the-art approach in the three-way model comparison system, achieving **85.35% test accuracy** through advanced speech feature extraction and CTC sequence modeling.
+The WavLM CTC workflow represents an advanced research approach in the three-way model comparison system, achieving **85.35% test accuracy** through cutting-edge speech feature extraction and CTC sequence modeling. **Note**: Empirical testing shows Wav2Vec2 CTC performs better (87.00%) for production use.
 
 ## 🏆 Performance Highlights
 
@@ -193,16 +193,18 @@ dh → v           | 4     | 14.3%
 
 ## 🎯 Comparison with Other Models
 
-### Performance Ranking
-1. **WavLM CTC**: 85.35% (best)
-2. **Wav2Vec2 CTC**: Good performance
-3. **MLP Control**: Baseline performance
+### Performance Ranking (Empirical Results)
+1. **Wav2Vec2 CTC**: 87.00% (best performer)
+2. **WavLM CTC**: 85.35% (advanced research model)
+3. **MLP Control**: 79.73% (speed champion)
 
 ### Key Advantages of WavLM CTC
-- **Superior Speech Representations**: WavLM's advanced architecture
+- **Advanced Speech Representations**: Microsoft's cutting-edge WavLM architecture
+- **Research Value**: Cutting-edge features for speech research applications
 - **Sequence Modeling**: Temporal awareness vs. single-phoneme MLP
 - **Alignment-Free Training**: CTC eliminates forced alignment
-- **Production Ready**: Complete ONNX export pipeline
+- **Complete Pipeline**: Full ONNX export and research capabilities
+- **Note**: For production deployment, Wav2Vec2 CTC (87.00%) is empirically better
 
 ## 🔧 Technical Implementation Notes
 

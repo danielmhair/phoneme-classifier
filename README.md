@@ -25,11 +25,11 @@ Epics:
 
 | Model | Performance | Architecture | Key Features |
 |-------|------------|-------------|--------------|
-| **MLP Control** | Baseline | scikit-learn MLP | Fast, traditional single phoneme prediction |
-| **Wav2Vec2 CTC** | Good | PyTorch CTC + Facebook Wav2Vec2 | Sequence modeling with temporal awareness |
-| **WavLM CTC** | **85.35%** | PyTorch CTC + Microsoft WavLM | Advanced speech representations, best performance |
+| **🥇 Wav2Vec2 CTC** | **87.00%** | PyTorch CTC + Facebook Wav2Vec2 | **BEST PERFORMER**: Sequence modeling excellence |
+| **🥈 WavLM CTC** | **85.35%** | PyTorch CTC + Microsoft WavLM | Advanced speech representations, research model |
+| **🥉 MLP Control** | **79.73%** | scikit-learn MLP | Speed champion: 4.2x faster than CTC models |
 
-🏆 **WavLM CTC achieved 85.35% accuracy** with 88.61% peak validation accuracy, demonstrating superior phoneme recognition capabilities!
+🏆 **Wav2Vec2 CTC achieved 87.00% accuracy** (1,740/2,000 correct), empirically proving superior phoneme recognition capabilities!
 
 ## 🚀 Quick Start
 
@@ -98,15 +98,27 @@ poe train-ctc     # Train Wav2Vec2 CTC model
 poe test-ctc      # Test CTC inference
 ```
 
-### **3. CTC WavLM Workflow** (Best Performance) 🏆
+### **2. CTC Wav2Vec2 Workflow** (BEST Performance) 🏆
 
 - **Superior sequence modeling** with PyTorch + LSTM
-- **Microsoft's WavLM** advanced speech representations
-- **85.35% test accuracy achieved**
-- **State-of-the-art phoneme recognition**
+- **Facebook's Wav2Vec2** proven speech representations
+- **87.00% test accuracy achieved**
+- **Empirically best phoneme recognition**
 
 ```bash
-poe train-wavlm-ctc     # Train WavLM CTC model (best)
+poe train-ctc           # Train Wav2Vec2 CTC model (BEST)
+poe test-ctc            # Test best CTC inference
+```
+
+### **3. CTC WavLM Workflow** (Advanced Research) 🥈
+
+- **Advanced sequence modeling** with PyTorch + LSTM
+- **Microsoft's WavLM** cutting-edge speech representations
+- **85.35% test accuracy achieved**
+- **Research-focused advanced features**
+
+```bash
+poe train-wavlm-ctc     # Train WavLM CTC model (research)
 poe test-wavlm-ctc      # Test advanced CTC inference
 ```
 
@@ -176,14 +188,14 @@ Audio Recordings → Feature Extraction → ML Training → Model Export
                  768-dim vectors    [MLP: single phoneme]
                                    [CTC: sequence modeling]
                                    
-Performance: MLP (baseline) < Wav2Vec2 CTC (good) < WavLM CTC (85.35% best)
+Performance: MLP (79.73% baseline) < WavLM CTC (85.35% good) < Wav2Vec2 CTC (87.00% BEST)
 ```
 
 ## 🎮 Project Epics
 
 This project follows a structured epic-based development approach:
 
-1. **[✅ Live Phoneme CTCs](https://www.notion.so/Epic-Live-Phoneme-CTCs-22b502b4855680149d70eec42adf84d3?pvs=21)** - **COMPLETED!** Three-way model comparison achieved with 85.35% WavLM CTC performance
+1. **[✅ Live Phoneme CTCs](https://www.notion.so/Epic-Live-Phoneme-CTCs-22b502b4855680149d70eec42adf84d3?pvs=21)** - **COMPLETED!** Three-way model comparison achieved with 87.00% Wav2Vec2 CTC best performance
 2. **[Live Streaming Improvements](https://www.notion.so/Epic-Live-Streaming-Improvements-Temporal-Brain-22b502b48556801c86f0f3f5a7036010?pvs=21)** - Temporal processing
 3. **[Whisper Teacher & Distillation](https://www.notion.so/Epic-Whisper-Teacher-Distillation-22b502b4855680da8047e51acd13ef1e?pvs=21)** - Model distillation
 4. **[Multi-Model Bake-off Harness](https://www.notion.so/Epic-Multi-Model-Bake-off-Harness-22b502b485568092ab79fe7ec3901b36?pvs=21)** - Benchmarking
@@ -194,11 +206,11 @@ This project follows a structured epic-based development approach:
 9. **[Evaluation & Progress Gates](https://www.notion.so/Epic-Evaluation-Progress-Gates-22b502b4855680dcb4f3e071691c4957?pvs=21)** - Quality assurance
 10. **[Model Update & Export Pipeline](https://www.notion.so/Epic-Model-Update-Export-Pipeline-22b502b485568049af1fe48dcff0d011?pvs=21)** - Deployment automation
 
-**Current Status**: Epic 1 (Live Phoneme CTCs) - ✅ **COMPLETED** - Three-way model comparison successfully implemented. WavLM CTC achieved 85.35% accuracy. ONNX export pipeline operational.
+**Current Status**: Epic 1 (Live Phoneme CTCs) - ✅ **COMPLETED** - Three-way model comparison successfully implemented. Wav2Vec2 CTC achieved 87.00% accuracy (best performer). ONNX export pipeline operational.
 
 ## 🎯 Key Features - Epic 1 Achievement
 
-- **🔥 Three ML Approaches**: MLP baseline + Wav2Vec2 CTC + WavLM CTC (85.35% accuracy!)
+- **🔥 Three ML Approaches**: MLP baseline (79.73%) + WavLM CTC (85.35%) + Wav2Vec2 CTC (87.00% best!)
 - **🎵 Advanced Audio Processing**: Complete Wav2Vec2/WavLM → embeddings → classification pipeline
 - **🏆 Performance Comparison**: Comprehensive three-way model benchmarking and analysis
 - **🎮 Game Integration**: ONNX export for deployment of Unreal Engine, browser, and mobile games
