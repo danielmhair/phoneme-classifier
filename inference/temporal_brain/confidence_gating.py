@@ -18,17 +18,20 @@ class ConfidenceGating:
     def __init__(self, 
                  default_threshold: float = 0.6,
                  persistence_frames: int = 3,
-                 phoneme_thresholds: Optional[Dict[str, float]] = None):
+                 phoneme_thresholds: Optional[Dict[str, float]] = None,
+                 phoneme_persistence: Optional[Dict[str, int]] = None):
         """Initialize confidence gating.
         
         Args:
             default_threshold: Default confidence threshold for all phonemes
-            persistence_frames: Number of frames phoneme must persist above threshold
+            persistence_frames: Default number of frames phoneme must persist above threshold
             phoneme_thresholds: Per-phoneme confidence thresholds
+            phoneme_persistence: Per-phoneme persistence frame requirements
         """
         self.default_threshold = default_threshold
         self.persistence_frames = persistence_frames
         self.phoneme_thresholds = phoneme_thresholds or {}
+        self.phoneme_persistence = phoneme_persistence or {}
         
         # State variables for candidate tracking
         self.candidate_phoneme: Optional[str] = None
@@ -45,6 +48,17 @@ class ConfidenceGating:
             Confidence threshold for this phoneme
         """
         return self.phoneme_thresholds.get(phoneme, self.default_threshold)
+    
+    def get_persistence(self, phoneme: str) -> int:
+        """Get persistence requirement for specific phoneme.
+        
+        Args:
+            phoneme: Phoneme label
+            
+        Returns:
+            Number of frames this phoneme must persist
+        """
+        return self.phoneme_persistence.get(phoneme, self.persistence_frames)
     
     def process(self, probabilities: np.ndarray, phoneme_labels: List[str]) -> Tuple[Optional[str], float]:
         """Process probabilities through confidence gating.
@@ -76,8 +90,9 @@ class ConfidenceGating:
             self.candidate_count = 1
             self.candidate_confidence_sum = confidence
         
-        # Check if candidate has persisted long enough
-        if self.candidate_count >= self.persistence_frames:
+        # Check if candidate has persisted long enough (phoneme-specific)
+        required_persistence = self.get_persistence(predicted_phoneme)
+        if self.candidate_count >= required_persistence:
             # Candidate has persisted long enough
             avg_confidence = self.candidate_confidence_sum / self.candidate_count
             self._reset_candidate()

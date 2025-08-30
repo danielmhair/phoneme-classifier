@@ -40,7 +40,8 @@ class TemporalProcessor:
         self.confidence_gate = ConfidenceGating(
             default_threshold=config['confidence']['default_threshold'],
             persistence_frames=config['confidence']['persistence_frames'],
-            phoneme_thresholds=config['confidence']['phoneme_thresholds']
+            phoneme_thresholds=config['confidence']['phoneme_thresholds'],
+            phoneme_persistence=config['confidence'].get('phoneme_persistence', {})
         )
         
         self.phoneme_labels = config['phoneme_labels']
@@ -153,7 +154,8 @@ class TemporalProcessor:
         self.confidence_gate = ConfidenceGating(
             default_threshold=new_config['confidence']['default_threshold'],
             persistence_frames=new_config['confidence']['persistence_frames'],
-            phoneme_thresholds=new_config['confidence']['phoneme_thresholds']
+            phoneme_thresholds=new_config['confidence']['phoneme_thresholds'],
+            phoneme_persistence=new_config['confidence'].get('phoneme_persistence', {})
         )
         self.phoneme_labels = new_config['phoneme_labels']
         

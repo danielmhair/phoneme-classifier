@@ -4,6 +4,7 @@ Audio capture system for Epic 2 temporal brain CLI tool.
 Provides real-time audio capture and preprocessing compatible
 with Epic 1 model requirements.
 """
+import json
 import threading
 import time
 from queue import Queue, Empty
@@ -35,7 +36,72 @@ class AudioCaptureConfig:
         self.channels = channels
         self.dtype = dtype
         self.blocksize = blocksize
-        self.device = device
+        self.device = self._select_valid_input_device(device)
+
+    def _select_valid_input_device(self, preferred_device: Optional[int]) -> Optional[int]:
+        """Select a valid input device, avoiding problematic defaults.
+        
+        Args:
+            preferred_device: User-specified device ID or None for auto-selection
+            
+        Returns:
+            Valid device ID or None for system default
+        """
+        try:
+            import sounddevice as sd
+            import time
+            
+            # Query devices with retry logic for WSL2 stability
+            devices = None
+            for attempt in range(3):
+                try:
+                    devices = sd.query_devices()
+                    break
+                except Exception as e:
+                    if attempt < 2:
+                        time.sleep(0.1)
+                        continue
+                    else:
+                        print(f"❌ Device query failed after 3 attempts: {e}")
+                        return 0  # Force device 0 as safe fallback
+
+            if devices is None:
+                print("❌ No audio devices found, assuming device 0")
+                return 0  # Force device 0 as safe fallback
+            
+            # Build list of input devices
+            input_devices = []
+            for i, device in enumerate(devices):
+                if device['max_input_channels'] > 0:
+                    input_devices.append(i)
+            
+            if not input_devices:
+                print("❌ No valid input devices found, assuming device 0")
+                return 0  # Force device 0 as safe fallback
+            
+            # If user specified a device, validate it
+            if preferred_device is not None:
+                if (0 <= preferred_device < len(devices) and 
+                    devices[preferred_device]['max_input_channels'] > 0):
+                    return preferred_device
+            
+            # Auto-select best input device
+            for i in input_devices:
+                device = devices[i]
+                # Prefer 'pulse' or 'default' over others
+                if 'pulse' in device['name'].lower() or 'default' in device['name'].lower():
+                    return i
+            
+            # Fallback to first input device found
+            if input_devices:
+                return input_devices[0]
+            
+            # Final fallback
+            return 0
+            
+        except Exception as e:
+            print(f"❌ Device selection error: {e}")
+            return 0  # Force device 0 instead of None
 
 
 class AudioProcessor:

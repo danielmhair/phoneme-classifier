@@ -9,7 +9,6 @@ Handles different preprocessing pipelines for each Epic 1 model type:
 import numpy as np
 import librosa
 from typing import Optional, Dict, Any
-from transformers import Wav2Vec2Processor
 
 
 class AudioFeatureExtractor:
@@ -24,10 +23,12 @@ class AudioFeatureExtractor:
         self.MIN_AMP_THRESHOLD = 0.01
         self.BUFFER_SAMPLES = 1000
         
-    def _get_wav2vec_processor(self) -> Wav2Vec2Processor:
+    def _get_wav2vec_processor(self):
         """Get or create Wav2Vec2 processor for MLP models."""
         if self._wav2vec_processor is None:
             try:
+                # Lazy import to avoid 1.2s startup penalty
+                from transformers import Wav2Vec2Processor
                 self._wav2vec_processor = Wav2Vec2Processor.from_pretrained(
                     "facebook/wav2vec2-base"
                 )
@@ -148,15 +149,13 @@ class AudioFeatureExtractor:
                 features = self.extract_features_for_mlp(processed_audio)
                 feature_type = 'wav2vec2_features'
             elif model_type == 'ctc':
-                # CTC models take direct audio input
-                features = self.extract_features_for_ctc(processed_audio, "wav2vec2")
-                feature_type = 'raw_audio'
-            elif model_type == 'wavlm_ctc':
-                # WavLM CTC model
-                features = self.extract_features_for_ctc(processed_audio, "wavlm")
-                feature_type = 'raw_audio'
+                # CTC models also need Wav2Vec2 features (two-stage like MLP)
+                features = self.extract_features_for_mlp(processed_audio)
+                feature_type = 'wav2vec2_features'
             else:
-                raise ValueError(f"Unknown model type: {model_type}")
+                # All model types use Wav2Vec2 preprocessing
+                features = self.extract_features_for_mlp(processed_audio)
+                feature_type = 'wav2vec2_features'
             
             return {
                 'features': features,

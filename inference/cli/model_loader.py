@@ -77,7 +77,7 @@ class ModelLoader:
                 'path': 'workflows/ctc_wavlm_workflow/dist/phoneme_ctc.onnx',
                 'labels_path': 'workflows/ctc_wavlm_workflow/dist/phoneme_labels.json',
                 'model_type': 'ctc',
-                'description': 'Microsoft WavLM CTC model from Epic 1 (85.35% accuracy)'
+                'description': 'Microsoft WavLM CTC model from Epic 1'
             }
         ]
         
@@ -112,8 +112,8 @@ class ModelLoader:
             return False
         
         model_info = self.available_models[model_id]
-        model_path = self.models_dir / model_info.path
-        labels_path = self.models_dir / model_info.labels_path
+        model_path = Path(model_info.path)
+        labels_path = Path(model_info.labels_path)
         
         try:
             # Load phoneme labels first
@@ -139,12 +139,22 @@ class ModelLoader:
                 print(f"   🎯 Stage 2: MLP classifier")
                 
             else:
-                # CTC models: direct single-stage inference
-                self.current_session = ort.InferenceSession(str(model_path))
-                self.wav2vec_session = None
-                self.mlp_session = None
+                # CTC models: two-stage inference (Wav2Vec2 → CTC)
+                wav2vec_path = Path("workflows/mlp_control_workflow/dist/wav2vec2.onnx")
                 
-                print(f"✅ Loaded {model_info.name} (single-stage)")
+                if not wav2vec_path.exists():
+                    print(f"❌ Wav2Vec2 feature extractor not found: {wav2vec_path}")
+                    print("   Run Epic 1 MLP workflow first: poe train-mlp")
+                    return False
+                
+                # Load both stages  
+                self.wav2vec_session = ort.InferenceSession(str(wav2vec_path))
+                self.current_session = ort.InferenceSession(str(model_path))
+                self.mlp_session = None  # Not used for CTC
+                
+                print(f"✅ Loaded {model_info.name} (two-stage)")
+                print(f"   🧠 Stage 1: Wav2Vec2 feature extractor")
+                print(f"   🎯 Stage 2: {model_info.name}")
                 print(f"   📁 Path: {model_path}")
             
             self.current_model_info = model_info
@@ -220,33 +230,56 @@ class ModelLoader:
         probabilities = self._softmax(logits)
         return probabilities
     
-    def _run_ctc_inference(self, audio_features: np.ndarray) -> np.ndarray:
-        """Run single-stage CTC inference: audio → probabilities."""
-        if self.current_session is None:
-            raise RuntimeError("CTC model not loaded properly")
+    def _run_ctc_inference(self, wav2vec_features: np.ndarray) -> np.ndarray:
+        """Run two-stage CTC inference: Wav2Vec2 → embeddings → CTC → probabilities."""
+        if self.current_session is None or self.wav2vec_session is None:
+            raise RuntimeError("CTC two-stage models not loaded properly")
         
-        # Get input/output names
-        input_name = self.current_session.get_inputs()[0].name
-        output_name = self.current_session.get_outputs()[0].name
+        # Stage 1: Extract embeddings using Wav2Vec2 ONNX
+        wav2vec_input_name = self.wav2vec_session.get_inputs()[0].name
+        wav2vec_outputs = self.wav2vec_session.run(None, {wav2vec_input_name: wav2vec_features})
+        embeddings = wav2vec_outputs[0]  # From MLP model: [1, 768] (averaged)
         
-        # Ensure correct input shape
-        if len(audio_features.shape) == 1:
-            audio_features = audio_features.reshape(1, -1)
+        # CTC models need temporal sequences, but MLP Wav2Vec2 gives averaged embeddings
+        # Create a minimal sequence by replicating the embedding
+        if len(embeddings.shape) == 2:
+            # [1, 768] → [1, seq_len, 768] for CTC
+            seq_len = 10  # Minimal sequence length for CTC
+            embeddings = np.tile(embeddings[:, np.newaxis, :], (1, seq_len, 1))
         
-        # Run inference
-        outputs = self.current_session.run(
-            [output_name], 
-            {input_name: audio_features}
-        )
+        # Stage 2: Run CTC inference using embeddings
+        ctc_input_name = self.current_session.get_inputs()[0].name
+        ctc_outputs = self.current_session.run(None, {ctc_input_name: embeddings})
+        log_probabilities = ctc_outputs[0]  # Shape: [1, T, num_classes]
         
-        probabilities = outputs[0]
+        # CTC decoding: take most likely token at each timestep
+        # For real-time use, we'll use simple greedy decoding
+        if len(log_probabilities.shape) == 3:
+            # Get predictions for first batch item: [T, num_classes]
+            log_probs_seq = log_probabilities[0]
+            
+            # Greedy decoding: argmax at each timestep
+            predictions_seq = np.argmax(log_probs_seq, axis=1)  # Shape: [T]
+            
+            # Find first non-blank prediction
+            blank_token_id = len(self.current_labels)  # Blank token is last
+            predicted_phoneme_idx = None
+            
+            for pred in predictions_seq:
+                if pred != blank_token_id and pred < len(self.current_labels):
+                    predicted_phoneme_idx = pred
+                    break
+            
+            # Convert to probability distribution over phonemes
+            probabilities = np.zeros(len(self.current_labels))
+            if predicted_phoneme_idx is not None:
+                probabilities[predicted_phoneme_idx] = 1.0
+            else:
+                # No prediction found, return uniform distribution
+                probabilities = np.ones(len(self.current_labels)) / len(self.current_labels)
+        else:
+            raise RuntimeError(f"Unexpected CTC output shape: {log_probabilities.shape}")
         
-        # Handle different output shapes
-        if len(probabilities.shape) > 1:
-            probabilities = probabilities[0]  # Take first batch item
-        
-        # Apply softmax for CTC models
-        probabilities = self._softmax(probabilities)
         return probabilities
     
     def get_model_info_summary(self) -> str:

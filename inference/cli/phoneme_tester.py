@@ -54,15 +54,15 @@ class TemporalBrainTester:
         try:
             config_file = Path(config_path)
             if not config_file.exists():
-                click.echo(f"❌ Config file not found: {config_path}")
+                print(f"❌ Config file not found: {config_path}")
                 return False
             
             self.temporal_processor = TemporalProcessor.from_config_file(config_path)
-            click.echo(f"✅ Loaded temporal brain config: {config_path}")
+            print(f"✅ Loaded temporal brain config: {config_path}")
             return True
             
         except Exception as e:
-            click.echo(f"❌ Failed to load config: {e}")
+            print(f"❌ Failed to load config: {e}")
             return False
     
     def list_models(self):
@@ -70,16 +70,16 @@ class TemporalBrainTester:
         models = self.model_loader.list_available_models()
         
         if not models:
-            click.echo("❌ No models found in dist/ directory")
-            click.echo("   Run Epic 1 workflows first: poe train-all")
+            print("❌ No models found in dist/ directory")
+            print("   Run Epic 1 workflows first: poe train-all")
             return
         
-        click.echo("📦 Available Models:")
+        print("📦 Available Models:")
         for model in models:
-            click.echo(f"   🎯 {model.model_id}: {model.name}")
-            click.echo(f"      📝 {model.description}")
-            click.echo(f"      🏷️  Type: {model.model_type.upper()}")
-            click.echo("")
+            print(f"   🎯 {model.model_id}: {model.name}")
+            print(f"      📝 {model.description}")
+            print(f"      🏷️  Type: {model.model_type.upper()}")
+            print("")
     
     def load_model(self, model_id: str) -> bool:
         """Load a specific model.
@@ -95,11 +95,11 @@ class TemporalBrainTester:
     def start_testing_session(self):
         """Start interactive phoneme testing session."""
         if not self.temporal_processor:
-            click.echo("❌ Temporal brain not configured")
+            print("❌ Temporal brain not configured")
             return
         
-        if not self.model_loader.current_session:
-            click.echo("❌ No model loaded")
+        if not self.model_loader.current_model_info:
+            print("❌ No model loaded")
             return
         
         # Setup audio callback
@@ -111,15 +111,15 @@ class TemporalBrainTester:
         self.session_start_time = time.time()
         self.is_running = True
         
-        click.echo("🧠 Starting Temporal Brain Testing Session")
-        click.echo("=" * 50)
-        click.echo(f"Model: {self.model_loader.current_model_info.name}")
-        click.echo(f"Config: Temporal brain enabled")
-        click.echo(f"Target: <15% flicker rate, <150ms latency")
-        click.echo("")
-        click.echo("🎤 Speak phonemes clearly...")
-        click.echo("Press Ctrl+C to stop")
-        click.echo("")
+        print("🧠 Starting Temporal Brain Testing Session")
+        print("=" * 50)
+        print(f"Model: {self.model_loader.current_model_info.name}")
+        print(f"Config: Temporal brain enabled")
+        print(f"Target: <15% flicker rate, <150ms latency")
+        print("")
+        print("🎤 Speak phonemes clearly...")
+        print("Press Ctrl+C to stop")
+        print("")
         
         try:
             # Start audio capture
@@ -130,7 +130,7 @@ class TemporalBrainTester:
                 time.sleep(0.1)
                 
         except KeyboardInterrupt:
-            click.echo("\n🛑 Stopping session...")
+            print("\n🛑 Stopping session...")
         finally:
             self.stop_testing_session()
     
@@ -162,15 +162,22 @@ class TemporalBrainTester:
                     num_phonemes = len(self.model_loader.current_labels)
                     real_probs = np.ones(num_phonemes) / num_phonemes  # Uniform distribution
                 else:
-                    click.echo(f"⚠️  Feature extraction failed: {feature_result.get('error', 'Unknown error')}")
+                    print(f"⚠️  Feature extraction failed: {feature_result.get('error', 'Unknown error')}")
                     return
             else:
                 # Run REAL model inference
                 real_probs = self.model_loader.run_inference(feature_result['features'])
+                
+                # Debug: Check what probabilities we're getting
+                max_prob = np.max(real_probs)
+                top_phoneme_idx = np.argmax(real_probs)
+                top_phoneme = self.model_loader.current_labels[top_phoneme_idx]
+                # print(f"🔍 Raw inference: {top_phoneme} (prob: {max_prob:.3f})")
             
             # Process through temporal brain with REAL probabilities
             result = self.temporal_processor.process_frame(real_probs)
-            
+            # print(f"🧠 Temporal result: phoneme={result.get('phoneme', 'None')}, stable={result.get('is_stable', False)}")
+
             # Update statistics
             self.total_frames_processed += 1
             if result['is_stable']:
@@ -180,7 +187,7 @@ class TemporalBrainTester:
             self._display_realtime_result(result)
             
         except Exception as e:
-            click.echo(f"⚠️  Processing error: {e}")
+            print(f"⚠️  Processing error: {e}")
     
     
     def _display_realtime_result(self, result: dict):
@@ -198,11 +205,11 @@ class TemporalBrainTester:
                 confidence = result['confidence']
                 status = "🟢" if flicker_rate < 0.15 else "🟡"
                 
-                click.echo(f"{status} {result['phoneme']} "
+                print(f"{status} {result['phoneme']} "
                           f"(conf: {confidence:.2f}, "
                           f"flicker: {flicker_rate:.1%})")
             else:
-                click.echo("🔇 [silence]")
+                print("🔇 [silence]")
     
     def _display_session_summary(self, duration: float):
         """Display session summary statistics.
@@ -216,19 +223,19 @@ class TemporalBrainTester:
         stability_rate = self.stable_frames / self.total_frames_processed
         flicker_rate = self.temporal_processor.get_metrics()['flicker_rate']
         
-        click.echo("\n📊 Session Summary")
-        click.echo("=" * 30)
-        click.echo(f"Duration: {duration:.1f}s")
-        click.echo(f"Frames processed: {self.total_frames_processed}")
-        click.echo(f"Stable frames: {stability_rate:.1%}")
-        click.echo(f"Final flicker rate: {flicker_rate:.1%}")
+        print("\n📊 Session Summary")
+        print("=" * 30)
+        print(f"Duration: {duration:.1f}s")
+        print(f"Frames processed: {self.total_frames_processed}")
+        print(f"Stable frames: {stability_rate:.1%}")
+        print(f"Final flicker rate: {flicker_rate:.1%}")
         
         # Performance assessment
         target_flicker = 0.15
         if flicker_rate <= target_flicker:
-            click.echo(f"🎯 Target achieved! (<{target_flicker:.0%} flicker)")
+            print(f"🎯 Target achieved! (<{target_flicker:.0%} flicker)")
         else:
-            click.echo(f"⚠️  Above target ({flicker_rate:.1%} > {target_flicker:.0%})")
+            print(f"⚠️  Above target ({flicker_rate:.1%} > {target_flicker:.0%})")
 
 
 @click.command()
@@ -254,7 +261,7 @@ def main(model: str, config: str, list_models: bool, list_devices: bool):
         return
     
     if list_devices:
-        click.echo(tester.audio_capture.list_audio_devices())
+        print(tester.audio_capture.list_audio_devices())
         return
     
     # Setup temporal brain
@@ -263,7 +270,7 @@ def main(model: str, config: str, list_models: bool, list_devices: bool):
     
     # Load model
     if not tester.load_model(model):
-        click.echo("Available models:")
+        print("Available models:")
         tester.list_models()
         sys.exit(1)
     
