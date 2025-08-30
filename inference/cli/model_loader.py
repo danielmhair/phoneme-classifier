@@ -56,36 +56,34 @@ class ModelLoader:
             {
                 'model_id': 'mlp_control',
                 'name': 'MLP Control',
-                'path': 'phoneme_mlp.onnx',
-                'labels_path': 'phoneme_labels.json',
+                'path': 'workflows/mlp_control_workflow/dist/phoneme_mlp.onnx',
+                'labels_path': 'workflows/mlp_control_workflow/dist/phoneme_labels.json',
                 'model_type': 'mlp',
                 'description': 'Traditional MLP classifier from Epic 1 (two-stage: Wav2Vec2 → MLP)'
             },
-            # NOTE: CTC models not yet properly exported to ONNX for temporal brain
-            # The wav2vec2.onnx currently only contains feature extractor, not full classifier
-            # Wav2Vec2 CTC workflow models (pending proper ONNX export)
-            # {
-            #     'model_id': 'wav2vec2_ctc',
-            #     'name': 'Wav2Vec2 CTC',
-            #     'path': 'wav2vec2_ctc.onnx',  # This doesn't exist yet
-            #     'labels_path': 'phoneme_labels.json',
-            #     'model_type': 'ctc',
-            #     'description': 'Facebook Wav2Vec2 CTC model from Epic 1'
-            # },
-            # WavLM CTC workflow models (pending proper ONNX export)  
-            # {
-            #     'model_id': 'wavlm_ctc',
-            #     'name': 'WavLM CTC',
-            #     'path': 'wavlm_ctc.onnx',  # This doesn't exist yet
-            #     'labels_path': 'phoneme_labels.json',
-            #     'model_type': 'ctc',
-            #     'description': 'Microsoft WavLM CTC model from Epic 1 (85.35% accuracy)'
-            # }
+            # Wav2Vec2 CTC workflow models
+            {
+                'model_id': 'wav2vec2_ctc',
+                'name': 'Wav2Vec2 CTC',
+                'path': 'workflows/ctc_w2v2_workflow/dist/phoneme_ctc.onnx',
+                'labels_path': 'workflows/ctc_w2v2_workflow/dist/phoneme_labels.json',
+                'model_type': 'ctc',
+                'description': 'Facebook Wav2Vec2 CTC model from Epic 1'
+            },
+            # WavLM CTC workflow models  
+            {
+                'model_id': 'wavlm_ctc',
+                'name': 'WavLM CTC',
+                'path': 'workflows/ctc_wavlm_workflow/dist/phoneme_ctc.onnx',
+                'labels_path': 'workflows/ctc_wavlm_workflow/dist/phoneme_labels.json',
+                'model_type': 'ctc',
+                'description': 'Microsoft WavLM CTC model from Epic 1 (85.35% accuracy)'
+            }
         ]
         
         for config in model_configs:
-            model_path = self.models_dir / config['path']
-            labels_path = self.models_dir / config['labels_path']
+            model_path = Path(config['path'])
+            labels_path = Path(config['labels_path'])
             
             if model_path.exists() and labels_path.exists():
                 self.available_models[config['model_id']] = ModelInfo(**config)
@@ -124,7 +122,7 @@ class ModelLoader:
             
             if model_info.model_type == 'mlp':
                 # MLP requires two-stage loading: Wav2Vec2 + MLP
-                wav2vec_path = self.models_dir / "wav2vec2.onnx"
+                wav2vec_path = Path("workflows/mlp_control_workflow/dist/wav2vec2.onnx")
                 mlp_path = model_path  # This should be phoneme_mlp.onnx
                 
                 if not wav2vec_path.exists():

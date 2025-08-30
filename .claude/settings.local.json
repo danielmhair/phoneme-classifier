@@ -18,7 +18,8 @@
       "Bash(PYTHONPATH=/mnt/c/Workspace/phoneme-classifier python3 -c \"from workflows.shared.s0_s1_shared_utils import prepare_wav_files_clean, cleanup_dist; print(''Import successful'')\")",
       "Bash(PYTHONPATH=/mnt/c/Workspace/phoneme-classifier python3 0_workflow.py)",
       "Bash(PYTHONPATH=/mnt/c/Workspace/phoneme-classifier python3 models/ctc_model.py)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(poetry run:*)"
     ],
     "deny": []
   }
