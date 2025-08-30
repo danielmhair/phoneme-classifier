@@ -1,0 +1,62 @@
+{
+    "smoothing": {
+        "type": "moving_average",
+        "window_size": 5,
+        "alpha": 0.3
+    },
+    "hysteresis": {
+        "lock_threshold": 0.7,
+        "unlock_threshold": 0.3,
+        "min_lock_duration": 3
+    },
+    "confidence": {
+        "default_threshold": 0.6,
+        "persistence_frames": 3,
+        "phoneme_thresholds": {
+            "AA": 0.7,
+            "AE": 0.6,
+            "AH": 0.65,
+            "AO": 0.7,
+            "AW": 0.6,
+            "AY": 0.65,
+            "B": 0.8,
+            "CH": 0.75,
+            "D": 0.8,
+            "DH": 0.7,
+            "EH": 0.6,
+            "ER": 0.65,
+            "EY": 0.6,
+            "F": 0.75,
+            "G": 0.8,
+            "HH": 0.7,
+            "IH": 0.6,
+            "IY": 0.65,
+            "JH": 0.8,
+            "K": 0.8,
+            "L": 0.7,
+            "M": 0.75,
+            "N": 0.7,
+            "NG": 0.75,
+            "OW": 0.65,
+            "OY": 0.7,
+            "P": 0.8,
+            "R": 0.7,
+            "S": 0.75,
+            "SH": 0.75,
+            "T": 0.8,
+            "TH": 0.75,
+            "UH": 0.65,
+            "UW": 0.65,
+            "V": 0.75,
+            "W": 0.7,
+            "Y": 0.7,
+            "Z": 0.75,
+            "ZH": 0.75
+        }
+    },
+    "phoneme_labels": ["AA", "AE", "AH", "AO", "AW", "AY", "B", "CH", "D", "DH", "EH", "ER", "EY", "F", "G", "HH", "IH", "IY", "JH", "K", "L", "M", "N", "NG", "OW", "OY", "P", "R", "S", "SH", "T", "TH", "UH", "UW", "V", "W", "Y", "Z", "ZH"],
+    "metrics": {
+        "flicker_window_size": 100,
+        "target_flicker_rate": 0.15
+    }
+}

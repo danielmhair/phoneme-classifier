@@ -58,6 +58,8 @@ poethepoet = "^0.18.0"
 flake8 = "^6.1.0"
 black = "^23.12.0"
 isort = "^5.13.0"
+pytest = "^7.4.0"
+click = "^8.1.0"
 
 # PyTorch CUDA Support
 [[tool.poetry.source]]
@@ -286,6 +288,30 @@ shell = "PYTHONPATH=$PWD python workflows/shared/ensemble_methods.py"
 [tool.poe.tasks.analyze-models]
 help = "Run comprehensive model analysis (comparison + ensemble)"
 sequence = ["compare-models", "create-ensemble"]
+
+# =============================================================================
+# EPIC 2: TEMPORAL BRAIN CLI TASKS
+# =============================================================================
+
+[tool.poe.tasks.temporal-test]
+help = "Interactive temporal brain phoneme testing CLI"
+cmd = "python inference/cli/phoneme_tester.py"
+
+[tool.poe.tasks.temporal-tune]
+help = "Auto-tune temporal brain parameters using voice samples"
+cmd = "python inference/cli/parameter_tuner.py"
+
+[tool.poe.tasks.temporal-baseline]
+help = "Measure baseline flicker rates from Epic 1 models"
+cmd = "python inference/cli/baseline_measurement.py"
+
+[tool.poe.tasks.temporal-compare]
+help = "Compare all 3 models (MLP/Wav2Vec2/WavLM) with temporal brain"
+cmd = "python inference/cli/model_comparison.py"
+
+[tool.poe.tasks.test-temporal]
+help = "Run all temporal brain unit tests"
+cmd = "pytest tests/temporal_brain/ -v"
 
 # =============================================================================
 # HELP & INFO TASKS  
