@@ -2,7 +2,7 @@
 ONNX model loader for Epic 2 temporal brain CLI tool.
 
 Supports loading all three model types from Epic 1:
-- MLP Control (converted to ONNX)
+- MLP Control (two-stage: Wav2Vec2 ONNX + MLP ONNX)
 - Wav2Vec2 CTC (direct ONNX)
 - WavLM CTC (direct ONNX)
 """
@@ -42,39 +42,45 @@ class ModelLoader:
         self.current_model_info: Optional[ModelInfo] = None
         self.current_labels: List[str] = []
         
+        # For MLP two-stage inference
+        self.wav2vec_session: Optional[ort.InferenceSession] = None
+        self.mlp_session: Optional[ort.InferenceSession] = None
+        
         # Discover available models
         self._discover_models()
     
     def _discover_models(self):
         """Discover available ONNX models from Epic 1 workflows."""
         model_configs = [
-            # MLP Control workflow models
+            # MLP Control workflow models (two-stage inference working)
             {
                 'model_id': 'mlp_control',
                 'name': 'MLP Control',
                 'path': 'phoneme_mlp.onnx',
                 'labels_path': 'phoneme_labels.json',
                 'model_type': 'mlp',
-                'description': 'Traditional MLP classifier from Epic 1'
+                'description': 'Traditional MLP classifier from Epic 1 (two-stage: Wav2Vec2 → MLP)'
             },
-            # Wav2Vec2 CTC workflow models  
-            {
-                'model_id': 'wav2vec2_ctc',
-                'name': 'Wav2Vec2 CTC',
-                'path': 'wav2vec2.onnx',
-                'labels_path': 'phoneme_labels.json',
-                'model_type': 'ctc',
-                'description': 'Facebook Wav2Vec2 CTC model from Epic 1'
-            },
-            # WavLM CTC workflow models (if available)
-            {
-                'model_id': 'wavlm_ctc',
-                'name': 'WavLM CTC',
-                'path': 'wavlm.onnx',
-                'labels_path': 'phoneme_labels.json',
-                'model_type': 'ctc',
-                'description': 'Microsoft WavLM CTC model from Epic 1 (85.35% accuracy)'
-            }
+            # NOTE: CTC models not yet properly exported to ONNX for temporal brain
+            # The wav2vec2.onnx currently only contains feature extractor, not full classifier
+            # Wav2Vec2 CTC workflow models (pending proper ONNX export)
+            # {
+            #     'model_id': 'wav2vec2_ctc',
+            #     'name': 'Wav2Vec2 CTC',
+            #     'path': 'wav2vec2_ctc.onnx',  # This doesn't exist yet
+            #     'labels_path': 'phoneme_labels.json',
+            #     'model_type': 'ctc',
+            #     'description': 'Facebook Wav2Vec2 CTC model from Epic 1'
+            # },
+            # WavLM CTC workflow models (pending proper ONNX export)  
+            # {
+            #     'model_id': 'wavlm_ctc',
+            #     'name': 'WavLM CTC',
+            #     'path': 'wavlm_ctc.onnx',  # This doesn't exist yet
+            #     'labels_path': 'phoneme_labels.json',
+            #     'model_type': 'ctc',
+            #     'description': 'Microsoft WavLM CTC model from Epic 1 (85.35% accuracy)'
+            # }
         ]
         
         for config in model_configs:
@@ -112,17 +118,38 @@ class ModelLoader:
         labels_path = self.models_dir / model_info.labels_path
         
         try:
-            # Load ONNX session
-            self.current_session = ort.InferenceSession(str(model_path))
-            
-            # Load phoneme labels
+            # Load phoneme labels first
             with open(labels_path, 'r') as f:
                 self.current_labels = json.load(f)
             
-            self.current_model_info = model_info
+            if model_info.model_type == 'mlp':
+                # MLP requires two-stage loading: Wav2Vec2 + MLP
+                wav2vec_path = self.models_dir / "wav2vec2.onnx"
+                mlp_path = model_path  # This should be phoneme_mlp.onnx
+                
+                if not wav2vec_path.exists():
+                    print(f"❌ Wav2Vec2 feature extractor not found: {wav2vec_path}")
+                    return False
+                
+                # Load both stages
+                self.wav2vec_session = ort.InferenceSession(str(wav2vec_path))
+                self.mlp_session = ort.InferenceSession(str(mlp_path))
+                self.current_session = None  # Not used for two-stage
+                
+                print(f"✅ Loaded MLP Control (two-stage):")
+                print(f"   🧠 Stage 1: Wav2Vec2 feature extractor")
+                print(f"   🎯 Stage 2: MLP classifier")
+                
+            else:
+                # CTC models: direct single-stage inference
+                self.current_session = ort.InferenceSession(str(model_path))
+                self.wav2vec_session = None
+                self.mlp_session = None
+                
+                print(f"✅ Loaded {model_info.name} (single-stage)")
+                print(f"   📁 Path: {model_path}")
             
-            print(f"✅ Loaded model: {model_info.name}")
-            print(f"   📁 Path: {model_path}")
+            self.current_model_info = model_info
             print(f"   🏷️  Labels: {len(self.current_labels)} phonemes")
             print(f"   📝 Type: {model_info.model_type.upper()}")
             
@@ -152,17 +179,53 @@ class ModelLoader:
         """Run inference on audio features.
         
         Args:
-            audio_features: Preprocessed audio features
+            audio_features: Preprocessed audio features (format depends on model type)
             
         Returns:
             Probability distribution over phonemes
             
         Raises:
-            RuntimeError: If no model is loaded
-            ValueError: If input shape is incorrect
+            RuntimeError: If no model is loaded or inference fails
         """
-        if self.current_session is None:
+        if self.current_model_info is None:
             raise RuntimeError("No model loaded. Call load_model() first.")
+        
+        try:
+            if self.current_model_info.model_type == 'mlp':
+                return self._run_mlp_inference(audio_features)
+            else:
+                return self._run_ctc_inference(audio_features)
+                
+        except Exception as e:
+            raise RuntimeError(f"Inference failed: {e}")
+    
+    def _run_mlp_inference(self, wav2vec_features: np.ndarray) -> np.ndarray:
+        """Run two-stage MLP inference: Wav2Vec2 → embeddings → MLP → probabilities."""
+        if self.wav2vec_session is None or self.mlp_session is None:
+            raise RuntimeError("MLP two-stage models not loaded properly")
+        
+        # Stage 1: Extract embeddings using Wav2Vec2 ONNX
+        wav2vec_input_name = self.wav2vec_session.get_inputs()[0].name
+        wav2vec_outputs = self.wav2vec_session.run(None, {wav2vec_input_name: wav2vec_features})
+        embeddings = wav2vec_outputs[0]  # Shape: [1, T, H]
+        
+        # Stage 2: Classify using MLP ONNX
+        mlp_input_name = self.mlp_session.get_inputs()[0].name
+        mlp_outputs = self.mlp_session.run(None, {mlp_input_name: embeddings})
+        logits = mlp_outputs[0]  # Shape: [1, num_classes]
+        
+        # Extract probabilities from first batch item
+        if len(logits.shape) > 1:
+            logits = logits[0]  # Shape: [num_classes]
+        
+        # Apply softmax to convert logits to probabilities
+        probabilities = self._softmax(logits)
+        return probabilities
+    
+    def _run_ctc_inference(self, audio_features: np.ndarray) -> np.ndarray:
+        """Run single-stage CTC inference: audio → probabilities."""
+        if self.current_session is None:
+            raise RuntimeError("CTC model not loaded properly")
         
         # Get input/output names
         input_name = self.current_session.get_inputs()[0].name
@@ -172,27 +235,21 @@ class ModelLoader:
         if len(audio_features.shape) == 1:
             audio_features = audio_features.reshape(1, -1)
         
-        try:
-            # Run inference
-            outputs = self.current_session.run(
-                [output_name], 
-                {input_name: audio_features}
-            )
-            
-            probabilities = outputs[0]
-            
-            # Handle different output shapes
-            if len(probabilities.shape) > 1:
-                probabilities = probabilities[0]  # Take first batch item
-            
-            # Apply softmax if needed (CTC models might need this)
-            if self.current_model_info.model_type == 'ctc':
-                probabilities = self._softmax(probabilities)
-            
-            return probabilities
-            
-        except Exception as e:
-            raise RuntimeError(f"Inference failed: {e}")
+        # Run inference
+        outputs = self.current_session.run(
+            [output_name], 
+            {input_name: audio_features}
+        )
+        
+        probabilities = outputs[0]
+        
+        # Handle different output shapes
+        if len(probabilities.shape) > 1:
+            probabilities = probabilities[0]  # Take first batch item
+        
+        # Apply softmax for CTC models
+        probabilities = self._softmax(probabilities)
+        return probabilities
     
     def get_model_info_summary(self) -> str:
         """Get formatted summary of current model.

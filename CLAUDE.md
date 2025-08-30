@@ -7,11 +7,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a phoneme classification system that trains AI models to classify speech phonemes from children's voices. The project features:
 
 - **Epic 1: Live Phoneme CTCs** - Three-way model comparison system (MLP, Wav2Vec2 CTC, WavLM CTC) ✅ COMPLETED
-- **Epic 2: Temporal Brain** - Real-time phoneme stabilization with CLI testing tool - ✅ TESTING
+- **Epic 2: Temporal Brain** - Real-time phoneme stabilization with CLI testing tool - ✅ COMPLETED
 
 The project uses **Poetry** for dependency management and **poethepoetry (poe)** for task execution.
 
+## ALWAYS REMEMBER
+
 Note, complete only happens when the user states its complete. Most tasks and epics involve human in the loop. Do not forget this
+
+Also, you can't say something is complete, UNLESS all mocked pieces are NOT mocked, unless the user specifies.
 
 ## Quick Start
 
@@ -257,7 +261,7 @@ poe test-wavlm-ctc   # WavLM CTC (best performance)
 
 ## Epic 2: Temporal Brain - IMPLEMENTED! 🧠
 
-**Achievement**: Successfully implemented real-time phoneme stabilization system with CLI testing tool using Test-Driven Development approach.
+**Achievement**: Successfully implemented real-time phoneme stabilization system with CLI testing tool using Test-Driven Development approach. **REAL ONNX MODEL INFERENCE** now fully functional, replacing mock probabilities for meaningful model comparison.
 
 ### Temporal Brain Features
 
@@ -268,6 +272,24 @@ poe test-wavlm-ctc   # WavLM CTC (best performance)
 | **Confidence Gating** | Reliability filtering | Persistence-based emission with phoneme-specific thresholds |
 | **Flicker Tracker** | Performance metrics | Real-time flicker rate measurement (<15% target) |
 | **Temporal Processor** | Main orchestrator | Complete pipeline integration with configuration management |
+| **Real Model Inference** | ONNX Integration | Two-stage MLP pipeline (Wav2Vec2 → MLP) with real inference replacing mocks |
+
+### Key Epic 2 Achievement: Real Model Inference
+
+❌ **Before**: Mock probabilities defeated Epic 2's purpose of model comparison  
+✅ **After**: Real ONNX inference enables meaningful temporal brain testing
+
+```python
+# OLD: Mock probabilities (meaningless for model comparison)
+def _create_mock_probabilities(self) -> np.ndarray:
+    return np.random.dirichlet(np.ones(len(self.labels)))
+
+# NEW: Real ONNX model inference (meaningful comparison)  
+def _process_audio_frame(self, audio_data: np.ndarray):
+    feature_result = self.feature_extractor.extract_features_for_model(...)
+    real_probs = self.model_loader.run_inference(feature_result['features'])
+    result = self.temporal_processor.process_frame(real_probs)
+```
 
 ### Epic 2 Components Status
 - ✅ **Core Algorithms**: All temporal brain algorithms implemented with TDD

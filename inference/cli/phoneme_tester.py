@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from inference.temporal_brain import TemporalProcessor
 from inference.cli.model_loader import ModelLoader
 from inference.cli.audio_capture import AudioCapture
+from inference.cli.audio_feature_extractor import AudioFeatureExtractor
 
 
 class TemporalBrainTester:
@@ -32,6 +33,7 @@ class TemporalBrainTester:
         self.temporal_processor: Optional[TemporalProcessor] = None
         self.model_loader = ModelLoader()
         self.audio_capture = AudioCapture()
+        self.feature_extractor = AudioFeatureExtractor()
         self.is_running = False
         
         # Statistics
@@ -142,18 +144,32 @@ class TemporalBrainTester:
             self._display_session_summary(duration)
     
     def _process_audio_frame(self, audio_data: np.ndarray):
-        """Process single audio frame through temporal brain pipeline.
+        """Process single audio frame through temporal brain pipeline with REAL model inference.
         
         Args:
             audio_data: Raw audio data from capture
         """
         try:
-            # For this demo, we'll create mock probabilities
-            # In real implementation, this would run inference on audio_data
-            mock_probs = self._create_mock_probabilities(audio_data)
+            # Extract features based on current model type
+            feature_result = self.feature_extractor.extract_features_for_model(
+                audio_data, 
+                self.model_loader.current_model_info.model_type
+            )
             
-            # Process through temporal brain
-            result = self.temporal_processor.process_frame(mock_probs)
+            if not feature_result['preprocessing_success']:
+                if feature_result.get('is_silent', False):
+                    # Silent audio - create zero probabilities
+                    num_phonemes = len(self.model_loader.current_labels)
+                    real_probs = np.ones(num_phonemes) / num_phonemes  # Uniform distribution
+                else:
+                    click.echo(f"⚠️  Feature extraction failed: {feature_result.get('error', 'Unknown error')}")
+                    return
+            else:
+                # Run REAL model inference
+                real_probs = self.model_loader.run_inference(feature_result['features'])
+            
+            # Process through temporal brain with REAL probabilities
+            result = self.temporal_processor.process_frame(real_probs)
             
             # Update statistics
             self.total_frames_processed += 1
@@ -166,31 +182,6 @@ class TemporalBrainTester:
         except Exception as e:
             click.echo(f"⚠️  Processing error: {e}")
     
-    def _create_mock_probabilities(self, audio_data: np.ndarray) -> np.ndarray:
-        """Create mock probabilities for demonstration.
-        
-        In real implementation, this would run model inference.
-        
-        Args:
-            audio_data: Raw audio data
-            
-        Returns:
-            Mock probability distribution
-        """
-        num_phonemes = len(self.model_loader.current_labels)
-        
-        # Create some noise with occasional peaks
-        base_probs = np.random.random(num_phonemes) * 0.1
-        
-        # Add occasional high-confidence predictions
-        if np.random.random() > 0.7:  # 30% chance of detection
-            peak_idx = np.random.randint(0, num_phonemes)
-            base_probs[peak_idx] = np.random.uniform(0.6, 0.9)
-        
-        # Normalize to probabilities
-        base_probs = base_probs / np.sum(base_probs)
-        
-        return base_probs
     
     def _display_realtime_result(self, result: dict):
         """Display real-time processing result.
