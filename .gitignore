@@ -17,3 +17,6 @@ phoneme_embeddings
 data
 logs
 **/dist_last
+
+# Windows Zone.Identifier files
+*.Zone.Identifier
