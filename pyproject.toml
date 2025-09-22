@@ -119,6 +119,7 @@ sequence = ["train-ctc", "train-wavlm-ctc"]
 # TESTING & VALIDATION TASKS
 # =============================================================================
 
+# Legacy individual model tests
 [tool.poe.tasks.test-pkl]
 help = "Test pickle model inference (MLP workflow)"
 cmd = "python workflows/mlp_control_workflow/validations/classify_voice_pkl.py"
@@ -126,6 +127,33 @@ cmd = "python workflows/mlp_control_workflow/validations/classify_voice_pkl.py"
 [tool.poe.tasks.test-onnx]
 help = "Test ONNX model inference (MLP workflow)"
 cmd = "python workflows/mlp_control_workflow/validations/classify_voice_onnx.py"
+
+# New validation framework with clean test recordings
+[tool.poe.tasks.test-models]
+help = "Run comprehensive model validation tests using clean recordings"
+cmd = "python tests/test_model_validation.py"
+
+[tool.poe.tasks.test-mlp-validation]  
+help = "Test MLP Control model with clean recordings"
+cmd = "python -c \"from tests.test_model_validation import ModelValidator; v=ModelValidator(); v.setup_models(); result=v.validate_mlp_model(); v.save_validation_results(result); print(f'MLP Accuracy: {result.accuracy:.1%} ({result.correct_predictions}/{result.total_tests})')\"" 
+
+[tool.poe.tasks.test-ctc-validation]
+help = "Test CTC models with clean recordings"  
+cmd = "python -c \"from tests.test_model_validation import ModelValidator; v=ModelValidator(); v.setup_models(); result=v.validate_ctc_model('wavlm_ctc'); v.save_validation_results(result); print(f'CTC Accuracy: {result.accuracy:.1%} ({result.correct_predictions}/{result.total_tests})')\""
+
+# Interactive testing commands
+[tool.poe.tasks.test-mlp-interactive]
+help = "Interactive MLP testing - specify phonemes and record"
+cmd = "python tests/interactive_model_test.py mlp"
+
+[tool.poe.tasks.test-ctc-interactive]  
+help = "Interactive CTC testing - specify sequences and record"
+cmd = "python tests/interactive_model_test.py ctc"
+
+# Guided test data recording
+[tool.poe.tasks.record-test-data]
+help = "Guided recording session for all Phase 1 & 2 test sounds"
+cmd = "python tests/record_test_data.py"
 
 [tool.poe.tasks.test-ctc]
 help = "Test CTC model inference (Wav2Vec2 CTC workflow)"

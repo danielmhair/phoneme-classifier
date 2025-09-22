@@ -19,7 +19,9 @@
       "Bash(PYTHONPATH=/mnt/c/Workspace/phoneme-classifier python3 0_workflow.py)",
       "Bash(PYTHONPATH=/mnt/c/Workspace/phoneme-classifier python3 models/ctc_model.py)",
       "Bash(source:*)",
-      "Bash(poetry run:*)"
+      "Bash(poetry run:*)",
+      "mcp__sequentialthinking__sequentialthinking",
+      "mcp__serena__search_for_pattern"
     ],
     "deny": []
   }

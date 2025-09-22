@@ -1,0 +1,701 @@
+{
+  "metadata": {
+    "evaluation_date": "2025-08-31 10:10:22",
+    "evaluation_type": "fast_sampling",
+    "samples_per_phoneme": 5,
+    "total_files": 180,
+    "models_tested": [
+      "mlp_control",
+      "wav2vec2_ctc",
+      "wavlm_ctc"
+    ],
+    "phoneme_labels": [
+      "a_æ",
+      "a_ɑ",
+      "ai_eɪ",
+      "b",
+      "ch",
+      "d",
+      "dh",
+      "e",
+      "ee",
+      "f",
+      "g",
+      "h",
+      "i",
+      "i_aɪ",
+      "ir_ɝ",
+      "j_dʒ",
+      "k",
+      "l",
+      "m",
+      "n",
+      "ng",
+      "oa",
+      "oo_uw",
+      "oo_ʊ",
+      "ow_aʊ",
+      "oy_oɪ_ɔɪ",
+      "p",
+      "s",
+      "sh",
+      "su_ʒ",
+      "t",
+      "th",
+      "u",
+      "v",
+      "w",
+      "y_j",
+      "z"
+    ],
+    "total_phonemes": 37
+  },
+  "per_phoneme_accuracy": {
+    "a_æ": {
+      "mlp_control": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "a_ɑ": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "ai_eɪ": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "b": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 1,
+        "total": 5,
+        "percentage": 20.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "ch": {
+      "mlp_control": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 1,
+        "total": 5,
+        "percentage": 20.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "d": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 3,
+        "total": 5,
+        "percentage": 60.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "dh": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 1,
+        "total": 5,
+        "percentage": 20.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "e": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 3,
+        "total": 5,
+        "percentage": 60.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "ee": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "f": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 3,
+        "total": 5,
+        "percentage": 60.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "g": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 2,
+        "total": 5,
+        "percentage": 40.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "h": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 2,
+        "total": 5,
+        "percentage": 40.0
+      },
+      "wavlm_ctc": {
+        "correct": 2,
+        "total": 5,
+        "percentage": 40.0
+      }
+    },
+    "i": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 3,
+        "total": 5,
+        "percentage": 60.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "i_aɪ": {
+      "mlp_control": {
+        "correct": 0,
+        "total": 0,
+        "percentage": 0.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 0,
+        "total": 0,
+        "percentage": 0.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 0,
+        "percentage": 0.0
+      }
+    },
+    "ir_ɝ": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "j_dʒ": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 3,
+        "total": 5,
+        "percentage": 60.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "k": {
+      "mlp_control": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 3,
+        "total": 5,
+        "percentage": 60.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "l": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "m": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 1,
+        "total": 5,
+        "percentage": 20.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "n": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "ng": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 1,
+        "total": 5,
+        "percentage": 20.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "oa": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 3,
+        "total": 5,
+        "percentage": 60.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "oo_uw": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "oo_ʊ": {
+      "mlp_control": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 3,
+        "total": 5,
+        "percentage": 60.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "ow_aʊ": {
+      "mlp_control": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 3,
+        "total": 5,
+        "percentage": 60.0
+      },
+      "wavlm_ctc": {
+        "correct": 1,
+        "total": 5,
+        "percentage": 20.0
+      }
+    },
+    "oy_oɪ_ɔɪ": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "p": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 1,
+        "total": 5,
+        "percentage": 20.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "s": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "sh": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wavlm_ctc": {
+        "correct": 1,
+        "total": 5,
+        "percentage": 20.0
+      }
+    },
+    "su_ʒ": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "t": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 1,
+        "total": 5,
+        "percentage": 20.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "th": {
+      "mlp_control": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 1,
+        "total": 5,
+        "percentage": 20.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "u": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "v": {
+      "mlp_control": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "w": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "y_j": {
+      "mlp_control": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 4,
+        "total": 5,
+        "percentage": 80.0
+      },
+      "wavlm_ctc": {
+        "correct": 0,
+        "total": 5,
+        "percentage": 0.0
+      }
+    },
+    "z": {
+      "mlp_control": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wav2vec2_ctc": {
+        "correct": 5,
+        "total": 5,
+        "percentage": 100.0
+      },
+      "wavlm_ctc": {
+        "correct": 1,
+        "total": 5,
+        "percentage": 20.0
+      }
+    }
+  },
+  "overall_accuracy": {
+    "mlp_control": {
+      "correct": 172,
+      "total": 180,
+      "percentage": 95.55555555555556
+    },
+    "wav2vec2_ctc": {
+      "correct": 116,
+      "total": 180,
+      "percentage": 64.44444444444444
+    },
+    "wavlm_ctc": {
+      "correct": 5,
+      "total": 180,
+      "percentage": 2.7777777777777777
+    }
+  }
+}

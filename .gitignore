@@ -8,6 +8,7 @@ temp_audio.wav
 .venv
 mfa_env
 /recordings*/
+**/dist
 multi_phoneme
 src/models
 **/wav2vec2-base*
@@ -15,5 +16,4 @@ src/models
 phoneme_embeddings
 data
 logs
-**/dist
 **/dist_last

@@ -46,6 +46,10 @@ class ModelLoader:
         self.wav2vec_session: Optional[ort.InferenceSession] = None
         self.mlp_session: Optional[ort.InferenceSession] = None
         
+        # For CTC temporal inference (new architecture)
+        self.wavlm_temporal_session: Optional[ort.InferenceSession] = None
+        self.wav2vec2_temporal_session: Optional[ort.InferenceSession] = None
+        
         # Discover available models
         self._discover_models()
     
@@ -139,23 +143,51 @@ class ModelLoader:
                 print(f"   🎯 Stage 2: MLP classifier")
                 
             else:
-                # CTC models: two-stage inference (Wav2Vec2 → CTC)
-                wav2vec_path = Path("workflows/mlp_control_workflow/dist/wav2vec2.onnx")
+                # CTC models: Use temporal feature extractors (NEW ARCHITECTURE)
+                if model_id == 'wavlm_ctc':
+                    temporal_path = self.models_dir / "wavlm_temporal.onnx"
+                elif model_id == 'wav2vec2_ctc':
+                    temporal_path = self.models_dir / "wav2vec2_temporal.onnx"
+                else:
+                    temporal_path = None
                 
-                if not wav2vec_path.exists():
-                    print(f"❌ Wav2Vec2 feature extractor not found: {wav2vec_path}")
-                    print("   Run Epic 1 MLP workflow first: poe train-mlp")
-                    return False
-                
-                # Load both stages  
-                self.wav2vec_session = ort.InferenceSession(str(wav2vec_path))
-                self.current_session = ort.InferenceSession(str(model_path))
-                self.mlp_session = None  # Not used for CTC
-                
-                print(f"✅ Loaded {model_info.name} (two-stage)")
-                print(f"   🧠 Stage 1: Wav2Vec2 feature extractor")
-                print(f"   🎯 Stage 2: {model_info.name}")
-                print(f"   📁 Path: {model_path}")
+                if temporal_path and temporal_path.exists():
+                    # NEW: Use proper temporal feature extraction
+                    if model_id == 'wavlm_ctc':
+                        self.wavlm_temporal_session = ort.InferenceSession(str(temporal_path))
+                        self.wav2vec_session = None  # Use temporal instead
+                    elif model_id == 'wav2vec2_ctc':
+                        self.wav2vec2_temporal_session = ort.InferenceSession(str(temporal_path))
+                        self.wav2vec_session = None  # Use temporal instead
+                    
+                    self.current_session = ort.InferenceSession(str(model_path))
+                    self.mlp_session = None  # Not used for CTC
+                    
+                    print(f"✅ Loaded {model_info.name} (TEMPORAL ARCHITECTURE)")
+                    print(f"   🧠 Stage 1: {model_id.split('_')[0].upper()} temporal features")
+                    print(f"   🎯 Stage 2: {model_info.name}")
+                    print(f"   📁 Temporal: {temporal_path}")
+                    print(f"   📁 CTC: {model_path}")
+                    
+                else:
+                    # FALLBACK: Use old averaged approach for compatibility
+                    wav2vec_path = Path("workflows/mlp_control_workflow/dist/wav2vec2.onnx")
+                    
+                    if not wav2vec_path.exists():
+                        print(f"❌ Wav2Vec2 feature extractor not found: {wav2vec_path}")
+                        print("   Run Epic 1 MLP workflow first: poe train-mlp")
+                        return False
+                    
+                    # Load both stages (old approach)
+                    self.wav2vec_session = ort.InferenceSession(str(wav2vec_path))
+                    self.current_session = ort.InferenceSession(str(model_path))
+                    self.mlp_session = None  # Not used for CTC
+                    
+                    print(f"⚠️ Loaded {model_info.name} (FALLBACK - averaged features)")
+                    print(f"   🧠 Stage 1: Wav2Vec2 feature extractor (averaged)")
+                    print(f"   🎯 Stage 2: {model_info.name}")
+                    print(f"   📁 Path: {model_path}")
+                    print(f"   💡 Note: For better accuracy, run: poetry run python inference/cli/export_temporal_onnx.py")
             
             self.current_model_info = model_info
             print(f"   🏷️  Labels: {len(self.current_labels)} phonemes")
@@ -202,7 +234,15 @@ class ModelLoader:
             if self.current_model_info.model_type == 'mlp':
                 return self._run_mlp_inference(audio_features)
             else:
-                return self._run_ctc_inference(audio_features)
+                # Check if we have temporal sessions available (NEW ARCHITECTURE)
+                model_id = self.current_model_info.model_id
+                if ((model_id == 'wavlm_ctc' and self.wavlm_temporal_session) or
+                    (model_id == 'wav2vec2_ctc' and self.wav2vec2_temporal_session)):
+                    # Use temporal CTC inference with raw audio
+                    return self._run_ctc_inference_temporal(audio_features, model_id)
+                else:
+                    # Fallback to old averaged approach
+                    return self._run_ctc_inference(audio_features)
                 
         except Exception as e:
             raise RuntimeError(f"Inference failed: {e}")
@@ -228,6 +268,55 @@ class ModelLoader:
         
         # Apply softmax to convert logits to probabilities
         probabilities = self._softmax(logits)
+        return probabilities
+    
+    def _run_ctc_inference_temporal(self, raw_audio: np.ndarray, model_id: str) -> np.ndarray:
+        """Run CTC inference with temporal feature extraction (NEW ARCHITECTURE)."""
+        # Determine which temporal model to use
+        if model_id == 'wavlm_ctc' and self.wavlm_temporal_session:
+            temporal_session = self.wavlm_temporal_session
+            model_name = "WavLM"
+        elif model_id == 'wav2vec2_ctc' and self.wav2vec2_temporal_session:
+            temporal_session = self.wav2vec2_temporal_session
+            model_name = "Wav2Vec2"
+        else:
+            raise RuntimeError(f"No temporal session available for {model_id}")
+        
+        if self.current_session is None:
+            raise RuntimeError("CTC model session not loaded")
+        
+        # Stage 1: Extract temporal features using appropriate model
+        temporal_input_name = temporal_session.get_inputs()[0].name
+        temporal_outputs = temporal_session.run(None, {temporal_input_name: raw_audio})
+        temporal_features = temporal_outputs[0]  # [1, sequence_length, 768]
+        
+        print(f"🧠 {model_name} temporal features: {temporal_features.shape}")
+        
+        # Stage 2: Run CTC inference using temporal features
+        ctc_input_name = self.current_session.get_inputs()[0].name
+        ctc_outputs = self.current_session.run(None, {ctc_input_name: temporal_features})
+        log_probabilities = ctc_outputs[0]  # Shape: [1, sequence_length, num_classes]
+        
+        # Extract proper probability distribution (same as fixed method below)
+        if len(log_probabilities.shape) == 3:
+            log_probs_seq = log_probabilities[0]  # [sequence_length, num_classes]
+            
+            # Average log probabilities across sequence timesteps
+            log_probs_avg = np.mean(log_probs_seq, axis=0)  # [num_classes]
+            
+            # Remove blank token (last class) and apply softmax
+            log_probs_phonemes = log_probs_avg[:-1]  # Exclude blank token
+            
+            # Apply softmax to get probability distribution
+            exp_logits = np.exp(log_probs_phonemes - np.max(log_probs_phonemes))
+            probabilities = exp_logits / np.sum(exp_logits)
+            
+            # Validate probability distribution
+            if not np.isclose(np.sum(probabilities), 1.0):
+                probabilities = probabilities / np.sum(probabilities)
+        else:
+            raise RuntimeError(f"Unexpected temporal CTC output shape: {log_probabilities.shape}")
+        
         return probabilities
     
     def _run_ctc_inference(self, wav2vec_features: np.ndarray) -> np.ndarray:
@@ -270,13 +359,21 @@ class ModelLoader:
                     predicted_phoneme_idx = pred
                     break
             
-            # Convert to probability distribution over phonemes
-            probabilities = np.zeros(len(self.current_labels))
-            if predicted_phoneme_idx is not None:
-                probabilities[predicted_phoneme_idx] = 1.0
-            else:
-                # No prediction found, return uniform distribution
-                probabilities = np.ones(len(self.current_labels)) / len(self.current_labels)
+            # Convert log probabilities to proper probability distribution
+            # Average log probabilities across sequence timesteps
+            log_probs_avg = np.mean(log_probs_seq, axis=0)  # [num_classes] 
+            
+            # Remove blank token (last class) and apply softmax
+            log_probs_phonemes = log_probs_avg[:-1]  # Exclude blank token
+            
+            # Apply softmax to get probability distribution
+            exp_logits = np.exp(log_probs_phonemes - np.max(log_probs_phonemes))  # Numerical stability
+            probabilities = exp_logits / np.sum(exp_logits)
+            
+            # Ensure probabilities sum to 1.0 and are valid
+            if not np.isclose(np.sum(probabilities), 1.0):
+                print(f"⚠️ Probability normalization issue: sum={np.sum(probabilities):.4f}")
+                probabilities = probabilities / np.sum(probabilities)  # Force normalization
         else:
             raise RuntimeError(f"Unexpected CTC output shape: {log_probabilities.shape}")
         

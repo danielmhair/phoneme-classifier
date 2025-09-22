@@ -97,25 +97,26 @@ class AudioFeatureExtractor:
     
     def extract_features_for_ctc(self, audio_data: np.ndarray, model_type: str = "wav2vec2") -> np.ndarray:
         """
-        Extract features for CTC models (direct audio input).
+        Prepare raw audio for temporal CTC models (NEW ARCHITECTURE).
         
         Args:
-            audio_data: Preprocessed audio data
-            model_type: "wav2vec2" or "wavlm" for different CTC models
+            audio_data: Preprocessed audio data (already trimmed and normalized)
+            model_type: "wav2vec2_ctc" or "wavlm_ctc" for temporal feature extraction
             
         Returns:
-            Audio features ready for CTC model inference
+            Raw audio ready for temporal feature extraction in ModelLoader
         """
-        # For CTC models, we typically feed raw audio directly
-        # But may need resampling to ensure 16kHz
+        # For temporal CTC models, return the preprocessed audio directly
+        # The ModelLoader will handle temporal feature extraction using appropriate ONNX models
         
-        # Ensure correct sample rate
-        if audio_data.shape[0] < self._sample_rate:
-            # Pad short audio to minimum length
-            pad_length = self._sample_rate - audio_data.shape[0]
+        # Ensure minimum length for temporal processing (64ms = 1024 samples)
+        min_samples = 1024  # 64ms at 16kHz
+        if audio_data.shape[0] < min_samples:
+            # Pad short audio to minimum temporal chunk size
+            pad_length = min_samples - audio_data.shape[0]
             audio_data = np.pad(audio_data, (0, pad_length), mode='constant')
         
-        # Add batch dimension if needed: [sequence] → [1, sequence]
+        # Add batch dimension: [sequence] → [1, sequence] 
         if len(audio_data.shape) == 1:
             audio_data = audio_data.reshape(1, -1)
         
@@ -145,15 +146,15 @@ class AudioFeatureExtractor:
         
         try:
             if model_type == 'mlp':
-                # MLP requires Wav2Vec2 feature extraction
+                # MLP requires Wav2Vec2 feature extraction (averaged)
                 features = self.extract_features_for_mlp(processed_audio)
                 feature_type = 'wav2vec2_features'
-            elif model_type == 'ctc':
-                # CTC models also need Wav2Vec2 features (two-stage like MLP)
-                features = self.extract_features_for_mlp(processed_audio)
-                feature_type = 'wav2vec2_features'
+            elif model_type in ['wav2vec2_ctc', 'wavlm_ctc']:
+                # CTC models need raw audio for temporal feature extraction
+                features = self.extract_features_for_ctc(processed_audio, model_type)
+                feature_type = f'{model_type}_temporal_audio'
             else:
-                # All model types use Wav2Vec2 preprocessing
+                # Default: use Wav2Vec2 preprocessing
                 features = self.extract_features_for_mlp(processed_audio)
                 feature_type = 'wav2vec2_features'
             
