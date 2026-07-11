@@ -1,14 +1,14 @@
 {
-  "session_start": "2025-09-22T06:28:22.705075",
-  "session_end": "2025-09-22T06:28:43.827390",
+  "session_start": "2025-09-22T08:22:34.147995",
+  "session_end": "2025-09-22T08:23:31.240294",
   "total_planned": 33,
   "total_recorded": 1,
   "recorded_files": [
     {
-      "filepath": "tests/test_recordings/mlp/B_test_001.wav",
+      "filepath": "tests/test_recordings/mlp/B_test_002.wav",
       "target": "B",
       "type": "mlp",
-      "timestamp": "2025-09-22T06:28:27.811907",
+      "timestamp": "2025-09-22T08:22:59.122863",
       "priority": "HIGH"
     }
   ],

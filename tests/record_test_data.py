@@ -133,6 +133,7 @@ class GuidedRecorder:
         
         try:
             # Record audio using the properly selected device
+            # Try with the selected device first
             audio_data = sd.rec(
                 int(duration * self.sample_rate), 
                 samplerate=self.sample_rate, 
@@ -146,20 +147,38 @@ class GuidedRecorder:
             return audio_data.flatten()
             
         except Exception as e:
-            print(f"❌ Recording failed: {e}")
-            print("🔧 Trying to list available devices...")
+            print(f"❌ Recording failed with device {self.audio_config.device}: {e}")
             
+            # Try fallback: system default (None)
             try:
-                devices = sd.query_devices()
-                print("Available audio devices:")
-                for i, device in enumerate(devices):
-                    if device['max_input_channels'] > 0:
-                        print(f"  {i}: {device['name']}")
-            except Exception as list_error:
-                print(f"❌ Could not list devices: {list_error}")
-            
-            # Return empty audio on failure
-            return np.zeros(int(duration * self.sample_rate), dtype=np.float32)
+                print("🔄 Trying system default device...")
+                audio_data = sd.rec(
+                    int(duration * self.sample_rate), 
+                    samplerate=self.sample_rate, 
+                    channels=1,
+                    dtype='float32',
+                    device=None  # System default
+                )
+                sd.wait()
+                print("⏹️  Recording complete with fallback device!")
+                return audio_data.flatten()
+                
+            except Exception as fallback_error:
+                print(f"❌ Fallback recording failed: {fallback_error}")
+                print("🔧 Trying to list available devices...")
+                
+                try:
+                    devices = sd.query_devices()
+                    print("Available audio devices:")
+                    for i, device in enumerate(devices):
+                        if device['max_input_channels'] > 0:
+                            print(f"  {i}: {device['name']} ({device['max_input_channels']} channels)")
+                except Exception as list_error:
+                    print(f"❌ Could not list devices: {list_error}")
+                
+                # Return empty audio on failure
+                print("⚠️  Returning silent audio - please check your microphone setup")
+                return np.zeros(int(duration * self.sample_rate), dtype=np.float32)
 
     def save_recording(self, audio_data: np.ndarray, recording_info: Dict) -> str:
         """Save recording with proper naming convention"""
