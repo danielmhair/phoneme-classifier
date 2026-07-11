@@ -18,5 +18,12 @@ data
 logs
 **/dist_last
 
+# LOSO harness generated data: embedding cache and augmented audio (large,
+# regenerable, machine-specific paths) and per-run results (reproducible by
+# re-running evaluation/harness/loso_runner.py). Harness source code itself
+# (evaluation/harness/*.py) is NOT covered by this and stays tracked.
+evaluation/harness_cache/
+evaluation/loso_results/
+
 # Windows Zone.Identifier files
 *.Zone.Identifier

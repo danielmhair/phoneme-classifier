@@ -22,6 +22,8 @@ Epics:
 9. [Epic - Evaluation & Progress Gates](https://www.notion.so/Epic-Evaluation-Progress-Gates-22b502b4855680dcb4f3e071691c4957?pvs=21)
 10. [Epic - Model Update & Export Pipeline](https://www.notion.so/Epic-Model-Update-Export-Pipeline-22b502b485568049af1fe48dcff0d011?pvs=21)
 
+See [docs/codebase-map.md](docs/codebase-map.md) for a factual map of how the training/inference pipeline actually works (workflow steps, CTC decoding, label ordering, data layout, known bugs and fixes) - written while implementing the [Evaluation Foundation PRD](plans/prds/07-10-2026-PRD-models-trustworthy.md), which found that the accuracy numbers below are unverified/known-flawed pending that work.
+
 ## 🎉 Epic 1: Live Phoneme CTCs - COMPLETED!
 
 ✅ **THREE-WAY MODEL COMPARISON ACHIEVED**: Successfully implemented and validated all three phoneme classification approaches:

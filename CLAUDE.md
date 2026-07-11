@@ -11,6 +11,8 @@ This is a phoneme classification system that trains AI models to classify speech
 
 The project uses **Poetry** for dependency management and **poethepoetry (poe)** for task execution.
 
+See [docs/codebase-map.md](docs/codebase-map.md) for a factual map of the training/inference pipeline (workflow steps, CTC decoding, label ordering, data layout, known bugs and fixes) - keep it in sync when workflow internals change materially.
+
 ## ALWAYS REMEMBER
 
 Note, complete only happens when the user states its complete. Most tasks and epics involve human in the loop. Do not forget this

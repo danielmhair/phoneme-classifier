@@ -8,10 +8,14 @@ Supports loading all three model types from Epic 1:
 """
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
 import onnxruntime as ort
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from workflows.shared.ctc_decode import ctc_predict
 
 
 class ModelInfo:
@@ -291,32 +295,21 @@ class ModelLoader:
         temporal_features = temporal_outputs[0]  # [1, sequence_length, 768]
         
         print(f"🧠 {model_name} temporal features: {temporal_features.shape}")
-        
+
         # Stage 2: Run CTC inference using temporal features
         ctc_input_name = self.current_session.get_inputs()[0].name
         ctc_outputs = self.current_session.run(None, {ctc_input_name: temporal_features})
         log_probabilities = ctc_outputs[0]  # Shape: [1, sequence_length, num_classes]
-        
-        # Extract proper probability distribution (same as fixed method below)
-        if len(log_probabilities.shape) == 3:
-            log_probs_seq = log_probabilities[0]  # [sequence_length, num_classes]
-            
-            # Average log probabilities across sequence timesteps
-            log_probs_avg = np.mean(log_probs_seq, axis=0)  # [num_classes]
-            
-            # Remove blank token (last class) and apply softmax
-            log_probs_phonemes = log_probs_avg[:-1]  # Exclude blank token
-            
-            # Apply softmax to get probability distribution
-            exp_logits = np.exp(log_probs_phonemes - np.max(log_probs_phonemes))
-            probabilities = exp_logits / np.sum(exp_logits)
-            
-            # Validate probability distribution
-            if not np.isclose(np.sum(probabilities), 1.0):
-                probabilities = probabilities / np.sum(probabilities)
-        else:
+
+        if len(log_probabilities.shape) != 3:
             raise RuntimeError(f"Unexpected temporal CTC output shape: {log_probabilities.shape}")
-        
+
+        # Greedy CTC decode + peak-posterior scoring (see workflows/shared/ctc_decode.py) -
+        # replaces the old np.mean(log_probs, axis=0) approach, which averaged over time
+        # and destroyed CTC's frame-alignment structure.
+        log_probs_seq = log_probabilities[0]  # [sequence_length, num_classes]
+        _, probabilities, _ = ctc_predict(log_probs_seq)
+
         return probabilities
     
     def _run_ctc_inference(self, wav2vec_features: np.ndarray) -> np.ndarray:
@@ -340,43 +333,16 @@ class ModelLoader:
         ctc_input_name = self.current_session.get_inputs()[0].name
         ctc_outputs = self.current_session.run(None, {ctc_input_name: embeddings})
         log_probabilities = ctc_outputs[0]  # Shape: [1, T, num_classes]
-        
-        # CTC decoding: take most likely token at each timestep
-        # For real-time use, we'll use simple greedy decoding
-        if len(log_probabilities.shape) == 3:
-            # Get predictions for first batch item: [T, num_classes]
-            log_probs_seq = log_probabilities[0]
-            
-            # Greedy decoding: argmax at each timestep
-            predictions_seq = np.argmax(log_probs_seq, axis=1)  # Shape: [T]
-            
-            # Find first non-blank prediction
-            blank_token_id = len(self.current_labels)  # Blank token is last
-            predicted_phoneme_idx = None
-            
-            for pred in predictions_seq:
-                if pred != blank_token_id and pred < len(self.current_labels):
-                    predicted_phoneme_idx = pred
-                    break
-            
-            # Convert log probabilities to proper probability distribution
-            # Average log probabilities across sequence timesteps
-            log_probs_avg = np.mean(log_probs_seq, axis=0)  # [num_classes] 
-            
-            # Remove blank token (last class) and apply softmax
-            log_probs_phonemes = log_probs_avg[:-1]  # Exclude blank token
-            
-            # Apply softmax to get probability distribution
-            exp_logits = np.exp(log_probs_phonemes - np.max(log_probs_phonemes))  # Numerical stability
-            probabilities = exp_logits / np.sum(exp_logits)
-            
-            # Ensure probabilities sum to 1.0 and are valid
-            if not np.isclose(np.sum(probabilities), 1.0):
-                print(f"⚠️ Probability normalization issue: sum={np.sum(probabilities):.4f}")
-                probabilities = probabilities / np.sum(probabilities)  # Force normalization
-        else:
+
+        if len(log_probabilities.shape) != 3:
             raise RuntimeError(f"Unexpected CTC output shape: {log_probabilities.shape}")
-        
+
+        # Greedy CTC decode + peak-posterior scoring (see workflows/shared/ctc_decode.py) -
+        # replaces the old np.mean(log_probs, axis=0) approach, which averaged over time
+        # and destroyed CTC's frame-alignment structure.
+        log_probs_seq = log_probabilities[0]  # [T, num_classes]
+        _, probabilities, _ = ctc_predict(log_probs_seq)
+
         return probabilities
     
     def get_model_info_summary(self) -> str:
