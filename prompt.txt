@@ -1,0 +1,56 @@
+Continue the Evaluation Foundation work for this repo (phoneme-classifier,
+pulled from github.com/danielmhair/phoneme-classifier @ main, commit 2c50bcc
+or later). Before doing anything, read these two files thoroughly - they are
+the source of truth for everything that happened so far:
+  1. plans/prds/07-10-2026-PRD-models-trustworthy.md (especially the
+     "Implementation status" section - the LOSO harness is built, the full
+     no-augmentation run is done, and the honest baseline numbers are in it)
+  2. docs/codebase-map.md (how the pipeline actually works + bugs already fixed)
+
+STEP 1 - Environment (auto-install, Windows-native Poetry, CPU only):
+- Pin Python 3.9.13 explicitly BEFORE installing:
+  poetry env use <path-to-python-3.9.13>  (do NOT let it resolve system Python)
+- poetry install --with dev
+- Set PYTHONUTF8=1 for every command this session (poe tasks print emoji and
+  crash on cp1252 otherwise).
+- Verify: poetry run python -c "import torch, transformers, onnxruntime,
+  sklearn" should give torch 2.3.1+cpu / transformers 4.50.3 / onnxruntime
+  1.19.2 / sklearn 1.6.1. If transformers fails with
+  "torch.library.register_fake" AttributeError, a stray torchvision is
+  installed - `poetry run pip uninstall -y torchvision` (known issue, see
+  codebase-map). Then run `poe debug-shared` as a final check.
+- There is NO setup-cuda task anymore; do not attempt a CUDA install.
+- Confirm recordings/ exists with 6,033 wavs across 5 speakers (callie 1243,
+  cassie 1132, chloe 1145, dan 1276, sky 1237) and that every file's prefix
+  matches its speaker directory. If recordings/ is missing, STOP and ask -
+  it must be copied from the primary machine (it's gitignored and contains
+  filename fixes that only exist there).
+- Check ~40GB free disk (augmentation generates ~25k wav variants plus two
+  embedding caches). The primary machine died at 0 bytes free mid-run.
+
+STEP 2 - The task: augmented Chloe-fold pilot (PRD follow-up, approved by
+Daniel). The full no-augmentation LOSO baseline is: Chloe (headline) MLP
+45.07% / Wav2Vec2-CTC 58.69% / WavLM-CTC 57.90%; no model met the 85% ship
+bar; every fold was far above the 10% bug floor. The pilot tests whether
+production-style augmentation closes any of the Chloe gap, on the Chloe fold
+only, before paying for a full 5-fold augmented rerun. Run in the background
+(it's hours long, resumable via caches):
+
+  poetry run python -c "
+  from evaluation.harness.loso_runner import run_loso
+  run_loso(model_types=['mlp_control','wav2vec2_ctc','wavlm_ctc'],
+           ctc_epochs=8, run_id='augmented_chloe_pilot',
+           use_augmentation=True, only_folds=['chloe'])"
+
+  (ctc_epochs=8, not 20, is deliberate: the augmented training set is ~6x
+  larger, so total gradient updates stay comparable.)
+
+STEP 3 - When it finishes: compare each model's Chloe accuracy against the
+baseline above (results land in evaluation/loso_results/augmented_chloe_pilot/).
+Report the delta honestly - "augmentation didn't help" is a valid, useful
+outcome meaning more target-age data is the real lever. Then update the PRD's
+Implementation status section with the pilot results (per CLAUDE.md, the PRD
+must track actual status; do NOT mark anything complete - completion is
+declared by Daniel only). If augmentation helps materially (roughly +5 points
+or more on Chloe), propose the full 5-fold augmented rerun before starting it.
+Remaining PRD scope after that either way: the live-mic smoke test (section 5.4).
