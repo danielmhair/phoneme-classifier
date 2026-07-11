@@ -1,5 +1,7 @@
 # Epic - Data Enrichment & Noise Robustness
 
+> **2026-07-11 status - partially in flight:** A production-parity augmentation pilot (noise/speed/pitch, Chloe fold) is the first slice of this epic, built as `evaluation/harness/augmentation.py` (run pending - moved to the more powerful machine). SpeechOcean762 remains rejected for now (forcing continuous read-aloud audio into isolated-phoneme shape risks worse artifacts than it fixes - PRD section 3); MUSAN/impulse-response/SNR-sweep work is still future.
+
 Incorporate environment variety, multiple accents, background noises, and augmentation (MUSAN, IRs, SNR sweeps) into training and testing pipelines.
 
 **Delivery Goal (Binary):**

@@ -1,5 +1,7 @@
 # Epic - Model Update & Export Pipeline
 
+> **2026-07-11 status:** Unchanged, but its riskiest prerequisite bug is already fixed: ONNX export used to swallow failures silently (a 0-byte file could pass unnoticed); it now fails loudly (2026-07-10). INT8 quantization and one-click retrain-evaluate-export-promote remain future work.
+
 Automate training, retraining, ONNX export (full + INT8), and deployment of models into the bake-off harness with fixed reproducible steps.
 
 **Delivery Goal (Binary):**

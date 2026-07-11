@@ -1,5 +1,7 @@
 # Epic - Personalization & Practice Packs
 
+> **2026-07-11 status - value up:** LOSO measured a ~9-point gap between the held-out-speaker average (~67%) and Chloe (~58%) - that gap is speaker mismatch, which is exactly what per-child calibration/few-shot adaptation attacks. The "per-child thresholds" slice may be worth pulling forward; it could buy more accuracy per unit effort than any architecture change.
+
 Develop per-child thresholds, adaptive difficulty, and custom daily practice packs based on offline scoring results.
 
 1. **Personalization:** per‑child thresholds and **practice packs** that adapt targets and difficulty daily.

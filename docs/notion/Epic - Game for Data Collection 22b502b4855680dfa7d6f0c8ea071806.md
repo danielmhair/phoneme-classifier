@@ -1,5 +1,7 @@
 # Epic - Game for Data Collection
 
+> **2026-07-11 status - PROMOTED, most-justified next epic:** LOSO results (2026-07-10) show the binding constraint is target-age-band data: Chloe (the only age-7 speaker) scores below the other-four-speaker average on every model. Encouraging detail: her known-target top-3 rate is 78-81%, so a game that knows the target phoneme and accepts top-3-with-margin is likely playable enough to collect data today. Supervised recording sessions (like the ones that produced the current dataset) are a cheaper non-game way to start while the game is built.
+
 Design and integrate fun, in-game mini-activities to collect high-quality, labeled phoneme data (isolated sounds and CVC carriers) from children in natural environments.
 
 **Delivery Goal (Binary):**

@@ -1,5 +1,7 @@
 # Epic - Multi-Model Bake-off Harness
 
+> **2026-07-11 status - largely delivered early:** The core of this epic was built 2026-07-10 as `evaluation/harness/` (single fit/predict interface across MLP control, W2V2-CTC, and WavLM-CTC; leave-one-speaker-out evaluation; persisted split manifests; known-target rank/margin metric) - see `plans/prds/07-10-2026-PRD-models-trustworthy.md`. Still open from this epic's scope: latency (p90) and ABX metrics, the Whisper-student model slot (gated on that epic's premise spike), CI/regression automation, and the in-game model selector.
+
 Integrate W2V2→MLP (control), W2V2-CTC, WavLM-CTC, and Distilled Whisper Student into a single interchangeable pipeline for latency, accuracy, and robustness testing.
 
 ## Models in the bake‑off (and their jobs)

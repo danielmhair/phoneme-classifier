@@ -1,5 +1,7 @@
 # Epic - Offline Rescoring & Parent Summaries
 
+> **2026-07-11 status:** Unchanged and genuinely downstream - needs a trusted live model first. The Whisper-rescoring path inherits the premise risk flagged on "Whisper Teacher & Distillation" (isolated child phonemes are Whisper's weakest input); the same half-day spike answers both.
+
 Build the CLI/server rescoring worker to process recorded audio through full models and Whisper teacher, producing accuracy summaries and next-day practice packs.
 
 1. **Whisper teacher (Post-game Accuracy brain):** *not* in the live loop. Used to:

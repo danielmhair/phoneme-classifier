@@ -1,5 +1,7 @@
 # Light Haven Phoneme Foundation: Strategic Planning Framework
 
+> **2026-07-10 update**: This document correctly identified the data-leakage problem below and called for "Foundation First: No game development until core models work reliably in real conditions." That work is now done - see the [Evaluation Foundation PRD](../plans/prds/07-10-2026-PRD-models-trustworthy.md) for the honest leave-one-speaker-out numbers, the LOSO evaluation harness (`evaluation/harness/`), and the CTC decode/label-mismatch/ONNX-export bugs that were fixed along the way. The rest of this document's analysis and reasoning still holds; only the "not yet done" framing below is now out of date.
+
 ## Executive Summary
 
 This document defines the strategic framework for building Light Haven's educational phoneme classification system. Based on divine guidance to focus on the foundational phoneme classifier and "think small" with initial implementations, this plan maps game types to model requirements and establishes a clear development sequence.

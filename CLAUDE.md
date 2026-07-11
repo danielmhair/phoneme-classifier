@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a phoneme classification system that trains AI models to classify speech phonemes from children's voices. The project features:
 
-- **Epic 1: Live Phoneme CTCs** - Three-way model comparison system (MLP, Wav2Vec2 CTC, WavLM CTC) ✅ COMPLETED
+- **Epic 1: Live Phoneme CTCs** - Three-way model comparison system (MLP, Wav2Vec2 CTC, WavLM CTC) - all three implemented and trainable; honest per-speaker accuracy (leave-one-speaker-out) doesn't yet meet the ship bar, see [plans/prds/07-10-2026-PRD-models-trustworthy.md](plans/prds/07-10-2026-PRD-models-trustworthy.md)
 - **Epic 2: Temporal Brain** - Real-time phoneme stabilization with CLI testing tool - ✅ COMPLETED
 
 The project uses **Poetry** for dependency management and **poethepoetry (poe)** for task execution.
@@ -23,18 +23,28 @@ Also, you can't say something is complete, UNLESS all mocked pieces are NOT mock
 
 ### Initial Setup
 
+**Windows-native Poetry, Python 3.9.13 specifically, CPU only** - no working CUDA setup exists in this repo. See [docs/codebase-map.md](docs/codebase-map.md) for the full verified recipe and why (WSL/Conda were tried and abandoned; a newer Python breaks numpy's build; `torch==2.3.1` is pinned and CUDA install attempts have broken the environment before).
+
 ```bash
 # Install Poetry (if not already installed)
 curl -sSL https://install.python-poetry.org | python3 -
 
-# Install all dependencies and CUDA support
-poe setup
+# Pin the venv to Python 3.9.13 explicitly - must happen before install,
+# otherwise Poetry may resolve to a newer system Python and break numpy's build
+poetry env use /path/to/python3.9.13/python.exe
 
-# Or step by step:
-poetry install                    # Install dependencies
-poetry add --group dev poethepoet    # Install poe task runner
-poe setup-cuda                   # Install PyTorch with CUDA
+# Install pinned CPU dependencies
+poe setup
+# (equivalent to: poetry install --with dev)
 ```
+
+Every `poe` command needs `PYTHONUTF8=1` set first on Windows (task output has emoji; the default console codepage can't encode them):
+
+```bash
+export PYTHONUTF8=1   # Git Bash; PowerShell: $env:PYTHONUTF8 = "1"
+```
+
+There is no `poe setup-cuda` task - a previous version existed but was removed after it installed `torchvision`, which is incompatible with the pinned `torch==2.3.1` and broke every `transformers`/Wav2Vec2/WavLM import. See [docs/codebase-map.md](docs/codebase-map.md) before attempting any CUDA setup.
 
 ### Training Workflows - Epic 1: Three-Way Model Comparison
 
@@ -179,7 +189,7 @@ The WavLM CTC workflow (`workflows/ctc_wavlm_workflow/0_workflow.py`) orchestrat
 9. **Test WavLM CTC ONNX model** - ONNX functionality validation
 10. **Test WavLM CTC inference system** - Production readiness validation
 
-**Performance Achievement**: 85.35% accuracy on test set with 88.61% peak validation accuracy.
+**Performance**: the 85.35% figure previously here came from a leakage-affected evaluation with broken CTC decoding and is no longer trusted - see [docs/codebase-map.md](docs/codebase-map.md). Honest leave-one-speaker-out accuracy: 57.90% on Chloe (the target-age-band headline speaker), see [plans/prds/07-10-2026-PRD-models-trustworthy.md](plans/prds/07-10-2026-PRD-models-trustworthy.md).
 
 ### Key Components
 
@@ -228,17 +238,17 @@ recordings/ → organized_recordings/ → phoneme_embeddings/ → classifier.pkl
 - `dist/` - Generated outputs (models, embeddings, visualizations)
 - `logs/` - Workflow execution logs with timestamps for all workflows
 
-## Epic 1: Live Phoneme CTCs - COMPLETED! 🎯
+## Epic 1: Live Phoneme CTCs - implementation complete, accuracy validation in progress
 
-**Achievement**: Successfully implemented three-way model comparison system enabling comprehensive analysis of different phoneme classification approaches.
+**Achievement**: Successfully implemented three-way model comparison system enabling comprehensive analysis of different phoneme classification approaches. Accuracy validated via leave-one-speaker-out evaluation (`evaluation/harness/`); no model yet meets the 85% ship bar on Chloe, the target-age-band headline speaker - see [plans/prds/07-10-2026-PRD-models-trustworthy.md](plans/prds/07-10-2026-PRD-models-trustworthy.md).
 
-### Model Comparison Results
+### Model Comparison Results (honest, leave-one-speaker-out, headline = Chloe)
 
-| Model | Type | Architecture | Performance | Training Time | Key Features |
-|-------|------|-------------|-------------|---------------|--------------|
-| **MLP Control** | Traditional | scikit-learn MLP | Baseline | ~Fast | Single phoneme prediction |
-| **Wav2Vec2 CTC** | Sequence | PyTorch CTC + Wav2Vec2 | Good | ~Medium | Facebook's speech model |
-| **WavLM CTC** | Advanced Sequence | PyTorch CTC + WavLM | **85.35%** | ~23 min | Microsoft's superior speech model |
+| Model | Type | Architecture | Chloe accuracy | Other 4 speakers (avg) |
+|-------|------|-------------|-----------------|--------------------------|
+| **MLP Control** | Traditional | scikit-learn MLP | 45.07% | 49.75% |
+| **Wav2Vec2 CTC** | Sequence | PyTorch CTC + Wav2Vec2 | 58.69% | 67.23% |
+| **WavLM CTC** | Advanced Sequence | PyTorch CTC + WavLM | 57.90% | 66.84% |
 
 ### Epic 1 Components Status
 - ✅ **MLP Control**: Baseline traditional classifier
@@ -258,7 +268,7 @@ poe test-all
 # Individual model testing for comparison
 poe test-pkl         # MLP Control
 poe test-ctc         # Wav2Vec2 CTC  
-poe test-wavlm-ctc   # WavLM CTC (best performance)
+poe test-wavlm-ctc   # WavLM CTC
 ```
 
 ## Epic 2: Temporal Brain - IMPLEMENTED! 🧠
@@ -356,7 +366,12 @@ The system generates multiple model formats:
 ## Integration Notes
 
 - Unreal Engine integration via ONNX models copied to Windows paths
-- Cross-platform development (WSL/Linux training, Windows deployment)
+- UE5 consumption also used LibTorch directly (not just ONNX Runtime), via two UE5 plugins:
+  [Libtorch-UE5](https://github.com/P1ayer-1/Libtorch-UE5) and [Tokenizers-UE5](https://github.com/P1ayer-1/Tokenizers-UE5).
+  LibTorch itself: Windows/CPU release zip from
+  [pytorch.org/get-started/locally](https://pytorch.org/get-started/locally/)
+  (e.g. `libtorch-win-shared-with-deps-2.6.0+cpu.zip`) - see `requirements.txt` for the original setup notes.
+- Training and deployment both run on Windows-native Poetry (CPU only) - see [docs/codebase-map.md](docs/codebase-map.md) for why WSL/Conda were tried and abandoned.
 - Real-time audio recording and classification capabilities
 - Support for multiple microphone quality levels in training data
 

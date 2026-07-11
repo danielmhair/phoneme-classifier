@@ -1,5 +1,7 @@
 # Epic - Live Streaming Improvements (Temporal Brain)
 
+> **2026-07-11 status:** Implemented (CLI tool, 47 tests), but its parameters were tuned against a signal now known to be partly noise (mock probabilities, then the since-fixed mean-over-time CTC decoding). Re-tune smoothing/hysteresis/gating against the fixed decode path (`workflows/shared/ctc_decode.py`) once a model is selected - small task, noted here so it isn't forgotten.
+
 Implement smoothing techniques, hysteresis controls, and probability-based gating to eliminate flicker and prevent misfires during phoneme detection.
 
 1. **Smoothing** to avoid jittery changes

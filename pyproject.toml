@@ -49,12 +49,6 @@ isort = "^5.13.0"
 pytest = "^7.4.0"
 click = "^8.1.0"
 
-# PyTorch CUDA Support
-[[tool.poetry.source]]
-name = "pytorch-cu118"
-url = "https://download.pytorch.org/whl/cu118"
-priority = "explicit"
-
 [tool.poe]
 poetry_command = ""
 
@@ -71,13 +65,9 @@ cmd = "poetry install"
 help = "Install all dependencies including dev tools"
 cmd = "poetry install --with dev"
 
-[tool.poe.tasks.setup-cuda]
-help = "Install PyTorch with CUDA 11.8 support"
-cmd = "poetry source add --priority=explicit pytorch-cu118 https://download.pytorch.org/whl/cu118 && poetry add --source pytorch-cu118 torch torchvision torchaudio"
-
 [tool.poe.tasks.setup]
-help = "Complete setup: install dependencies and CUDA support"
-sequence = ["install-dev", "setup-cuda"]
+help = "Complete setup: install pinned CPU dependencies (see docs/codebase-map.md for the verified recipe)"
+cmd = "poetry install --with dev"
 
 # =============================================================================
 # TRAINING WORKFLOW TASKS

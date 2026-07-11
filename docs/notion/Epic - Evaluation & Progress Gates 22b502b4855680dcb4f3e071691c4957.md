@@ -1,5 +1,7 @@
 # Epic - Evaluation & Progress Gates
 
+> **2026-07-11 status - partially absorbed:** The model-evaluation half is largely delivered by `evaluation/harness/` (one-command LOSO run, accuracy + known-target margin, persisted split manifests). Not yet built from this epic's scope: latency (p90) and ABX metrics, CI integration, and formal no-regression promotion gates. The child-progress-gates half is untouched product work.
+
 Implement the test harness (latency, ABX, GoP, phoneme clarity metrics) and define the “no regression” rules for promoting new models.
 
 ## **Delivery Goal:**

@@ -1,4 +1,4 @@
-# Phoneme Classifier - Epic 1 & 2: Live Phoneme CTCs + Temporal Brain ✅ COMPLETED!
+# Phoneme Classifier - Epic 1 & 2: Live Phoneme CTCs + Temporal Brain
 
 AI-powered phoneme classification system for children's speech recognition featuring **three-way model comparison** and **real-time temporal stabilization**:
 
@@ -11,7 +11,7 @@ This project is defined completely by this theme in Notion:
 
 Epics:
 
-1. [Epic - Live Phoneme CTCs](https://www.notion.so/Epic-Live-Phoneme-CTCs-22b502b4855680149d70eec42adf84d3?pvs=21) ✅ COMPLETED
+1. [Epic - Live Phoneme CTCs](https://www.notion.so/Epic-Live-Phoneme-CTCs-22b502b4855680149d70eec42adf84d3?pvs=21) - implemented; accuracy validation in progress, see below
 2. [Epic - Live Streaming Improvements (Temporal Brain)](https://www.notion.so/Epic-Live-Streaming-Improvements-Temporal-Brain-22b502b48556801c86f0f3f5a7036010?pvs=21) ✅ IMPLEMENTED
 3. [Epic - Whisper Teacher & Distillation](https://www.notion.so/Epic-Whisper-Teacher-Distillation-22b502b4855680da8047e51acd13ef1e?pvs=21)
 4. [Epic - Multi-Model Bake-off Harness](https://www.notion.so/Epic-Multi-Model-Bake-off-Harness-22b502b485568092ab79fe7ec3901b36?pvs=21)
@@ -22,31 +22,33 @@ Epics:
 9. [Epic - Evaluation & Progress Gates](https://www.notion.so/Epic-Evaluation-Progress-Gates-22b502b4855680dcb4f3e071691c4957?pvs=21)
 10. [Epic - Model Update & Export Pipeline](https://www.notion.so/Epic-Model-Update-Export-Pipeline-22b502b485568049af1fe48dcff0d011?pvs=21)
 
-See [docs/codebase-map.md](docs/codebase-map.md) for a factual map of how the training/inference pipeline actually works (workflow steps, CTC decoding, label ordering, data layout, known bugs and fixes) - written while implementing the [Evaluation Foundation PRD](plans/prds/07-10-2026-PRD-models-trustworthy.md), which found that the accuracy numbers below are unverified/known-flawed pending that work.
+See [docs/codebase-map.md](docs/codebase-map.md) for a factual map of how the training/inference pipeline actually works (workflow steps, CTC decoding, label ordering, data layout, known bugs and fixes) - written while implementing the [Evaluation Foundation PRD](plans/prds/07-10-2026-PRD-models-trustworthy.md), which found the project's old headline accuracy numbers were unverified/known-flawed and replaced them with the honest leave-one-speaker-out numbers below.
 
-## 🎉 Epic 1: Live Phoneme CTCs - COMPLETED!
+## 🎉 Epic 1: Live Phoneme CTCs - implementation complete, accuracy numbers superseded
 
-✅ **THREE-WAY MODEL COMPARISON ACHIEVED**: Successfully implemented and validated all three phoneme classification approaches:
+All three training pipelines (MLP, Wav2Vec2 CTC, WavLM CTC) are implemented and runnable end to end. The accuracy figures that used to appear in this section (87.00% / 85.35% / 79.73%) were found to come from evaluations with data leakage and, for the CTC models, broken decoding - see the [Evaluation Foundation PRD](plans/prds/07-10-2026-PRD-models-trustworthy.md) for the full story and [docs/codebase-map.md](docs/codebase-map.md) for what was fixed.
+
+**Honest, leave-one-speaker-out numbers** (headline = Chloe, the only speaker in the product's actual target age band; none currently meet the 85% ship bar):
+
+| Model | Chloe (headline) | Other 4 speakers (avg) |
+|-------|------------------|-------------------------|
+| Wav2Vec2 CTC | 58.69% | 67.23% |
+| WavLM CTC | 57.90% | 66.84% |
+| MLP Control | 45.07% | 49.75% |
+
+Both CTC models consistently beat MLP control on every fold. Full per-speaker results: `evaluation/loso_results/full_run_20260710/`.
 
 ## 🧠 Epic 2: Temporal Brain - IMPLEMENTED
 
 ✅ **REAL-TIME PHONEME STABILIZATION**: Successfully implemented temporal brain CLI testing tool with advanced stabilization algorithms and model hot-swapping capability!
 
-| Model | Performance | Architecture | Key Features |
-|-------|------------|-------------|--------------|
-| **🥇 Wav2Vec2 CTC** | **87.00%** | PyTorch CTC + Facebook Wav2Vec2 | **BEST PERFORMER**: Sequence modeling excellence |
-| **🥈 WavLM CTC** | **85.35%** | PyTorch CTC + Microsoft WavLM | Advanced speech representations, research model |
-| **🥉 MLP Control** | **79.73%** | scikit-learn MLP | Speed champion: 4.2x faster than CTC models |
-
-🏆 **Wav2Vec2 CTC achieved 87.00% accuracy** (1,740/2,000 correct), empirically proving superior phoneme recognition capabilities!
-
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Python 3.9+
+- **Python 3.9.13 specifically**, installed and on the machine (not just "3.9+") - resolving to a newer system Python (e.g. 3.13) breaks numpy's build. Windows-native, not WSL/Conda - see [docs/codebase-map.md](docs/codebase-map.md) for why.
 - Poetry (for dependency management)
-- CUDA-compatible GPU (recommended for training)
+- No CUDA support - training runs on CPU (`torch==2.3.1+cpu`). A previous `poe setup-cuda` task existed but was removed: it installed `torchvision`, which is incompatible with the pinned `torch==2.3.1` and broke every `transformers` import that touches image utilities (including the Wav2Vec2/WavLM feature extractors this project needs). See [docs/codebase-map.md](docs/codebase-map.md) before attempting a CUDA setup.
 
 ### Setup
 
@@ -54,13 +56,21 @@ See [docs/codebase-map.md](docs/codebase-map.md) for a factual map of how the tr
 # Install Poetry (if needed)
 curl -sSL https://install.python-poetry.org | python3 -
 
-# Complete setup: install dependencies + CUDA support
-poe setup
+# Pin the venv to Python 3.9.13 explicitly (must be done before install,
+# otherwise Poetry may resolve to system Python and break numpy's build)
+poetry env use /path/to/python3.9.13/python.exe
 
-# Or step by step:
-poetry install
-poetry add --group dev poethepoet
-poe setup-cuda
+# Install pinned CPU dependencies
+poe setup
+# (equivalent to: poetry install --with dev)
+```
+
+**Required for every `poe` command on Windows**: set `PYTHONUTF8=1` first (task output prints emoji; Windows' default console codepage can't encode them and the command crashes otherwise):
+
+```bash
+export PYTHONUTF8=1   # Git Bash / MINGW64
+# or, PowerShell:
+$env:PYTHONUTF8 = "1"
 ```
 
 ### Epic 1: Train & Compare All Three Models
@@ -75,7 +85,7 @@ poe test-all
 # Individual model training:
 poe train-mlp           # MLP Control (baseline)
 poe train-ctc           # Wav2Vec2 CTC 
-poe train-wavlm-ctc     # WavLM CTC (best performance)
+poe train-wavlm-ctc     # WavLM CTC
 
 # Interactive phoneme recording & testing
 poe record-cli
@@ -102,40 +112,28 @@ poe train-mlp     # Train MLP classifier
 poe test-pkl      # Test pickle model
 ```
 
-### **2. CTC Wav2Vec2 Workflow** (Advanced)
+### **2. CTC Wav2Vec2 Workflow**
 
 - **Sequence modeling** with PyTorch + LSTM
 - **Facebook's Wav2Vec2** speech representations
 - **Alignment-free CTC training**
 - **Temporal phoneme sequences**
+- Currently the best-scoring model on the honest LOSO headline number (58.69% on Chloe) - see the results table above
 
 ```bash
 poe train-ctc     # Train Wav2Vec2 CTC model
 poe test-ctc      # Test CTC inference
 ```
 
-### **2. CTC Wav2Vec2 Workflow** (BEST Performance) 🏆
-
-- **Superior sequence modeling** with PyTorch + LSTM
-- **Facebook's Wav2Vec2** proven speech representations
-- **87.00% test accuracy achieved**
-- **Empirically best phoneme recognition**
-
-```bash
-poe train-ctc           # Train Wav2Vec2 CTC model (BEST)
-poe test-ctc            # Test best CTC inference
-```
-
-### **3. CTC WavLM Workflow** (Advanced Research) 🥈
+### **3. CTC WavLM Workflow**
 
 - **Advanced sequence modeling** with PyTorch + LSTM
 - **Microsoft's WavLM** cutting-edge speech representations
-- **85.35% test accuracy achieved**
-- **Research-focused advanced features**
+- Close behind Wav2Vec2 CTC on the honest LOSO headline number (57.90% on Chloe) - see the results table above
 
 ```bash
-poe train-wavlm-ctc     # Train WavLM CTC model (research)
-poe test-wavlm-ctc      # Test advanced CTC inference
+poe train-wavlm-ctc     # Train WavLM CTC model
+poe test-wavlm-ctc      # Test CTC inference
 ```
 
 ## 🧠 Epic 2: Temporal Brain CLI Testing
@@ -224,7 +222,7 @@ phoneme-classifier/
 ├── workflows/
 │   ├── mlp_control_workflow/    # Traditional MLP baseline
 │   ├── ctc_w2v2_workflow/       # Wav2Vec2 CTC approach  
-│   ├── ctc_wavlm_workflow/      # WavLM CTC approach (85.35% accuracy)
+│   ├── ctc_wavlm_workflow/      # WavLM CTC approach
 │   └── shared/                  # Shared utilities across all workflows
 ├── inference/                   # Epic 2: Temporal brain real-time inference
 │   ├── temporal_brain/          # Core temporal brain algorithms
@@ -247,7 +245,9 @@ Audio Recordings → Feature Extraction → ML Training → Model Export
                  768-dim vectors    [MLP: single phoneme]
                                    [CTC: sequence modeling]
                                    
-Performance: MLP (79.73% baseline) < WavLM CTC (85.35% good) < Wav2Vec2 CTC (87.00% BEST)
+Performance: see the honest LOSO results table above (evaluation/loso_results/full_run_20260710/) -
+the old numbers that used to be here (79.73% / 85.35% / 87.00%) were found to come from leaked/
+mismeasured evaluations and are no longer trusted.
 
 **Epic 2: Real-Time Inference Flow**
 Live Audio → Audio Capture → ONNX Inference → Temporal Brain Pipeline → Stable Phoneme
@@ -261,7 +261,7 @@ Live Audio → Audio Capture → ONNX Inference → Temporal Brain Pipeline → 
 
 This project follows a structured epic-based development approach:
 
-1. **[✅ Live Phoneme CTCs](https://www.notion.so/Epic-Live-Phoneme-CTCs-22b502b4855680149d70eec42adf84d3?pvs=21)** - **COMPLETED!** Three-way model comparison achieved with 87.00% Wav2Vec2 CTC best performance
+1. **[Live Phoneme CTCs](https://www.notion.so/Epic-Live-Phoneme-CTCs-22b502b4855680149d70eec42adf84d3?pvs=21)** - Three training pipelines implemented; honest accuracy numbers (see above) don't yet meet the 85% ship bar - see the [Evaluation Foundation PRD](plans/prds/07-10-2026-PRD-models-trustworthy.md)
 2. **[✅ Live Streaming Improvements (Temporal Brain)](https://www.notion.so/Epic-Live-Streaming-Improvements-Temporal-Brain-22b502b48556801c86f0f3f5a7036010?pvs=21)** - **IMPLEMENTED** Real-time temporal brain CLI testing tool with advanced stabilization algorithms
 3. **[Whisper Teacher & Distillation](https://www.notion.so/Epic-Whisper-Teacher-Distillation-22b502b4855680da8047e51acd13ef1e?pvs=21)** - Model distillation
 4. **[Multi-Model Bake-off Harness](https://www.notion.so/Epic-Multi-Model-Bake-off-Harness-22b502b485568092ab79fe7ec3901b36?pvs=21)** - Benchmarking
@@ -272,16 +272,16 @@ This project follows a structured epic-based development approach:
 9. **[Evaluation & Progress Gates](https://www.notion.so/Epic-Evaluation-Progress-Gates-22b502b4855680dcb4f3e071691c4957?pvs=21)** - Quality assurance
 10. **[Model Update & Export Pipeline](https://www.notion.so/Epic-Model-Update-Export-Pipeline-22b502b485568049af1fe48dcff0d011?pvs=21)** - Deployment automation
 
-**Current Status**: 
-- Epic 1 (Live Phoneme CTCs) - ✅ **COMPLETED** - Three-way model comparison successfully implemented. Wav2Vec2 CTC achieved 87.00% accuracy (best performer). ONNX export pipeline operational.
+**Current Status**:
+- Epic 1 (Live Phoneme CTCs) - Three training pipelines implemented and runnable end to end. Accuracy validated via leave-one-speaker-out evaluation (see results table above); no model currently meets the 85% ship bar on Chloe (the target-age-band headline speaker). ONNX export pipeline operational for MLP; CTC ONNX export fixed to fail loudly on error (see [docs/codebase-map.md](docs/codebase-map.md)).
 - Epic 2 (Temporal Brain) - ✅ **IMPLEMENTED** - Real-time temporal brain CLI testing tool implemented with TDD approach. 47 unit tests passing, <15% flicker rate achieved.
 
-## 🎯 Key Features - Epic 1 & 2 Achievement
+## 🎯 Key Features - Epic 1 & 2
 
 ### Epic 1: Live Phoneme CTCs
-- **🔥 Three ML Approaches**: MLP baseline (79.73%) + WavLM CTC (85.35%) + Wav2Vec2 CTC (87.00% best!)
+- **🔥 Three ML Approaches**: MLP baseline, Wav2Vec2 CTC, WavLM CTC - see the honest LOSO results table above for current standing
 - **🎵 Advanced Audio Processing**: Complete Wav2Vec2/WavLM → embeddings → classification pipeline
-- **🏆 Performance Comparison**: Comprehensive three-way model benchmarking and analysis
+- **🏆 Performance Comparison**: Leave-one-speaker-out evaluation harness (`evaluation/harness/`) for apples-to-apples comparison
 - **🎮 Game Integration**: ONNX export for deployment of Unreal Engine, browser, and mobile games
 - **📊 Rich Visualization**: UMAP plots, confusion matrices, performance metrics for all workflows
 
@@ -292,7 +292,7 @@ This project follows a structured epic-based development approach:
 - **🧪 Interactive Testing**: Real-time phoneme testing with live audio capture
 - **✅ Test-Driven Development**: 47 comprehensive unit tests covering all components
 - **🎯 ONNX Integration**: Compatible with all Epic 1 ONNX models for deployment
-- **🔄 Cross-Platform**: WSL/Linux training → Windows deployment pipeline
+- **🖥️ Windows-native**: training and deployment both run on Windows-native Poetry (CPU only) - see [docs/codebase-map.md](docs/codebase-map.md) for why WSL/Conda were tried and abandoned
 
 ## 📚 Documentation
 

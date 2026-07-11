@@ -1,5 +1,7 @@
 # Epic - Live Phoneme CTCs
 
+> **2026-07-11 status (post-LOSO re-ranking):** All three pipelines are implemented, and the unified swap-a-model interface this epic asked for now exists in `evaluation/harness/models.py`. Honest leave-one-speaker-out accuracy (2026-07-10): Wav2Vec2-CTC 58.69%, WavLM-CTC 57.90%, MLP control 45.07% on Chloe (the target-age headline speaker) - all below the 85% ship bar, with both CTCs beating the control on every fold. The older 87%/85.35%/79.73% figures are debunked (data leakage + broken CTC decoding). The next accuracy lever is target-age data, not this epic - see "Game for Data Collection". Full context: `plans/prds/07-10-2026-PRD-models-trustworthy.md`.
+
 Build the on-device, low-latency CTC phoneme recognizers (W2V2-CTC and WavLM-CTC) with stabilizer and confidence gating so feedback feels instant and stable.
 
 ## **Delivery Goal**
