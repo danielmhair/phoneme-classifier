@@ -10,7 +10,7 @@ import torch
 import numpy as np
 import json
 from pathlib import Path
-from workflows.ctc_w2v2_workflow.models.ctc_model import create_ctc_model
+from workflows.ctc_wavlm_workflow.models.ctc_model import create_ctc_model
 
 def export_ctc_to_onnx(
     model_path: str = "./dist/ctc_model_best.pt",
@@ -106,8 +106,20 @@ def export_ctc_to_onnx(
             }
         )
         
+        # Fail loudly if the export produced no usable file - historically this
+        # step swallowed its own exceptions (see the except block below) and
+        # workflow_executor.py continues to the next step regardless, so a
+        # 0-byte/missing ONNX file could previously go unnoticed until someone
+        # tried to load it for inference much later.
+        if not onnx_path.exists() or onnx_path.stat().st_size == 0:
+            raise RuntimeError(
+                f"ONNX export produced no usable file at {onnx_path} "
+                f"(exists={onnx_path.exists()}, "
+                f"size={onnx_path.stat().st_size if onnx_path.exists() else 0} bytes)"
+            )
+
         print(f"✅ ONNX model exported to: {onnx_path}")
-        
+
         # Verify the exported model
         print("🔍 Verifying ONNX model...")
         onnx_model = onnx.load(str(onnx_path))

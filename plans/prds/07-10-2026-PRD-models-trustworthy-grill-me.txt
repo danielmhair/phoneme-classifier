@@ -1,0 +1,1770 @@
+ ▐▛███▜▌   Claude Code v2.1.206
+▝▜█████▛▘  Sonnet 5 · Claude Pro
+  ▘▘ ▝▝    c:\Workspace\phoneme-classifier
+
+ ▎ Extended: Fable 5 is included in your weekly limit
+ ▎ Through July 12, you can use up to 50% of your weekly usage limit on Fable 5. If you hit your limit, you can continue on Fable 5 with usage credits. Fable 5 draws down usage faster than Opus 4.8. Run /model and select Fable to use it. Learn more (https://support.claude.com/en/articles/15424964-claude-fable-5-promotional-access)
+
+❯ <ide_opened_file>The user opened the file                                     
+  c:\Workspace\phoneme-classifier\docs\README.md in the IDE. This may or may    
+  not be related to the current task.</ide_opened_file>                         
+
+❯ Based on the research (read all the files attached), and then looking at the  
+  codebase (docs, workflows, etc) on where we are at. I need a solid foundation 
+  for the real thing to do - don't just take what we have here as "the best     
+  path" - ultrathink on whether this is the right path, or what better paths    
+  are there?                                                                    
+
+● I'll start by mapping out what's in the research/ directory and current docs
+  to understand the full context before forming any opinion.
+
+  Read 12 files, listed 1 directory, ran 3 shell commands (ctrl+o to expand)
+
+● I've read the research, the Notion vision docs, the docs/ epic history, the
+  internal debugging chat, and cross-checked what's actually in the codebase
+  (vs. what's just documented). Here's my honest read.
+
+  Bottom line
+
+  Don't follow docs/README.md's roadmap next ("Current: Epic 2 Temporal Brain
+  tuning → Epic 3 Whisper → Epic 4 Bake-off → Epic 5 Browser game → Epic 6
+  Unreal"). If you do, you'll be tuning temporal-brain hysteresis parameters on
+  top of a phoneme signal nobody has actually verified works. That's polishing
+  noise.
+
+  The real foundation gap isn't the model or the runtime — it's that nothing in 
+  this repo can currently tell you if a model is good. Every accuracy number you
+  have is unverified:
+
+  - docs/3-epic2/9-analysis-after-tests.md (already in your repo — you found
+  this yourselves in Aug/Sep 2025) shows the "85% WavLM / 87% Wav2Vec2" headline
+  numbers came from evaluating on data that overlapped training (leakage), and
+  the CTC evaluation itself is architecturally broken — it does
+  np.mean(log_probs_seq, axis=0) across timesteps, which destroys exactly the
+  alignment structure CTC exists to produce. That's why WavLM scored 2.78%
+  (~random) in the honest re-run.
+  - No fix for that CTC decoding exists anywhere in the current code
+  (inference/, evaluation/) — I checked, grep/find for CTC decoding or
+  leave-one-speaker-out logic returns nothing.
+  - Your own docs/strategic-planning-framework.md already concluded this
+  ("Foundation First: No game development until core models work reliably in
+  real conditions") — and then the repo moved on to Epic 2 CLI/temporal-brain
+  work anyway without closing that loop.
+  - Your Notion vision (Theme: APR) independently defines the same gate: P0 is 
+  "harness ready," and it comes before P1 "models plugged in." You have the
+  vision doc in the repo but no code implementing it —
+  evaluation/model_comparison_fast.py is the flawed script, not the harness.
+
+  So three independent sources — the outside research, your own past internal
+  debugging session, and your own Notion product plan — all converge on the same
+  verdict: the foundation isn't proven yet, and the docs marking Epic 1 "✅ 
+  COMPLETED" are optimistic.
+
+  Where the research actually changes the plan (not just confirms it)
+
+  1. Reframe the task itself. Your internal chat spent a long time debating "is
+  CTC even right for isolated phonemes?" The research answers this cleanly: for
+  a phonics game, you always know the target phoneme/word, so the right framing
+  is forced-alignment + Goodness-of-Pronunciation (GOP) scoring against a known 
+  target, not open-vocabulary decoding. That also resolves the CTC-vs-MLP debate
+  — CTC's value isn't decoding blind, it's (a) giving you frame-level
+  posteriors a GOP layer can score, and (b) it's the only one of the two that
+  extends naturally to the CVC carriers your own vision doc's data strategy
+  already plans to collect. This is a missing epic, not something in your
+  current 10-epic list — it belongs between "Bake-off Harness" and "Offline
+  Rescoring."
+  2. Runtime (sherpa-onnx over UE5 NNE) is correct but not urgent. It only
+  matters at Epic 6 (Unreal), which per the Notion roadmap is the last of ten
+  epics, gated behind data collection, distillation, and personalization. Don't
+  let this influence anything right now.
+  3. 5 speakers, 1 in your target band. Chloe (7, typical) is your only real
+  signal for "does this work on the kid this product is for." Sky/Cassie (speech
+  impairments) are more valuable as GOP-calibration data than as training data.
+  This should directly shape how you split data in the harness, not just be a
+  footnote.
+  4. SpeechOcean762 (free, commercially licensed, phoneme-scored, includes
+  children) is available to bolt on now at near-zero cost, before you've built
+  the in-game data-collection loop. MyST needs a commercial license and only
+  covers ages 8–11, so it's useful but not urgent, and doesn't fill your 4–6
+  gap.
+
+  What I'd actually propose as "the real thing to do next"
+
+  Build the evaluation harness first — not more temporal-brain tuning, not the
+  browser game, not Unreal:
+  1. Fix CTC decoding (proper greedy/beam collapse) so WavLM/Wav2Vec2 CTC get
+  evaluated correctly at all.
+  2. Rebuild the eval as leave-one-speaker-out, with Chloe's held-out run as the
+  headline number instead of the current random-split number.
+  3. Wire that into the single ctcPredict-style interface your own Multi-Model
+  Bake-off epic already specs, so MLP/W2V2-CTC/WavLM-CTC are compared
+  apples-to-apples on the same honest metric.
+  4. Only after that produces a trustworthy number do you know whether Epic 1 is
+  actually done, whether WavLM beats Wav2Vec2 on your data, and whether the
+  temporal brain you built in Epic 2 is stabilizing signal or noise.
+
+  This is smaller and less exciting than "build the game," but it's the one
+  piece every other decision depends on, and right now it doesn't exist.
+
+  Want me to scope this out as an actual epic/plan (files touched, test design,
+  LOSO split strategy), or do you want to push back on any of this first — e.g.,
+  is Unreal still the near-term target platform, or is the browser prototype
+  first?
+
+❯ <ide_selection>The user selected the lines 684 to 700 from                    
+  c:\Workspace\phoneme-classifier\evaluation\accuracy_summary_fast.json:        
+    "overall_accuracy": {                                                       
+      "mlp_control": {                                                          
+        "correct": 172,                                                         
+        "total": 180,                                                           
+        "percentage": 95.55555555555556                                         
+      },                                                                        
+      "wav2vec2_ctc": {                                                         
+        "correct": 116,                                                         
+        "total": 180,                                                           
+        "percentage": 64.44444444444444                                         
+      },                                                                        
+      "wavlm_ctc": {                                                            
+        "correct": 5,                                                           
+        "total": 180,                                                           
+        "percentage": 2.7777777777777777                                        
+      }                                                                         
+    }                                                                           
+                                                                                
+  This may or may not be related to the current task.</ide_selection>           
+
+❯ I agree with the path. Lets /grill-me - note that I'm not as knowledgeable on 
+  ML (besides what we built here), so ask any questions that might have gaps,   
+  unless you have enough, then we can create a prd for this                     
+
+● Skill(grill-me)
+  ⎿  Successfully loaded skill
+
+  Read 1 file, listed 1 directory, ran 5 shell commands (ctrl+o to expand)
+
+● I explored the codebase/environment before asking — a few things I could
+  verify myself rather than asking you:
+
+  - evaluation/model_comparison_test.py (the "full" 5,864-file version) has the
+  exact same flaw as the fast version — no speaker split, no leakage protection,
+  iterates the whole recordings/ dir. So there's no salvageable "real"
+  evaluation script hiding anywhere; the harness is a build-from-scratch, not a
+  fix-in-place.
+  - Neither environment currently works. I tried running the conda env
+  (phoneme-classifier) — import torch fails with a broken C-extension error. I
+  also checked Poetry's virtualenv — it shows Path: NA, meaning no venv is
+  actually provisioned right now either. So right now, no code in this repo can 
+  be executed at all, in either environment.
+
+  That's a real blocker, and it's upstream of everything else, so it's question
+  1.
+
+  Q1: Which environment do we fix first — Conda or Poetry?
+
+  You have uncommitted changes mid-migration to Conda (SETUP.md,
+  setup_conda.sh/ps1, a gutted pyproject.toml), presumably because Poetry was
+  giving you Windows-compatibility grief. But the Conda env you already created
+  is currently broken (torch C-extension import failure — likely an
+  incomplete/corrupted install, fixable by re-running the install step for torch
+  specifically). Poetry still works as a tool but has no venv provisioned.
+
+  My recommendation: finish the Conda migration (re-run setup_conda.sh/fix the
+  torch install) rather than reviving Poetry, since you already started it for a
+  reason (Windows pain), and reverting would waste that work and likely hit the
+  same wall again. I'd fix this before touching harness code — even a quick
+  "does the env work" smoke test is impossible otherwise.
+
+  Do you want to fix the Conda env now (I can debug the torch install), or is
+  there a reason to go back to Poetry instead?
+
+❯ <ide_selection>The user selected the lines 51 to 78 from                      
+  c:\Workspace\phoneme-classifier\README.md:                                    
+  ```bash                                                                       
+  # Install Poetry (if needed)                                                  
+  curl -sSL https://install.python-poetry.org | python3 -                       
+                                                                                
+                                                                                
+  winget install Anaconda.Miniconda3                                            
+  # Add to path - C:\Users\danie\miniconda3                                     
+                                                                                
+  # Create conda environment                                                    
+  conda create -n phoneme-classifier python=3.9                                 
+  conda activate phoneme-classifier                                             
+                                                                                
+  # Install PyTorch via conda                                                   
+  conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c  
+  nvidia                                                                        
+                                                                                
+  # Or step by step:                                                            
+  poetry run pip install poethepoet                                             
+  poetry run poe setup                                                          
+  poetry run poe setup-cpu                                                      
+  ```                                                                           
+                                                                                
+  ### Reactivate                                                                
+                                                                                
+  ```bash                                                                       
+  conda activate phoneme-classifier                                             
+  poetry shell                                                                  
+  ```                                                                           
+                                                                                
+                                                                                
+  This may or may not be related to the current task.</ide_selection>           
+
+❯ Did you go through the README.md?                                             
+  This was all working, so its not half-fixed. We just have to know how we did  
+  it                                                                            
+
+  Read 2 files (ctrl+o to expand)
+
+● You're right, let me not guess — I'll check what's actually different between
+  the documented working recipe and the current broken state instead of asking
+  you to recall it.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+❯ Also I may have ran this in linux - wsl                                       
+
+● That WSL detail actually explains the breakage. Looking back at the evaluation
+  transcript I read earlier (docs/3-epic2/9-analysis-after-tests.md), the
+  actual successful run shows this path:
+
+  /home/danie/Workspaces/fast-api-phoneme-python/.venv/lib/python3.12/site-packa
+  ges/transformers/...
+
+  That's a WSL virtualenv, Python 3.12, at a differently-named directory
+  (fast-api-phoneme-python, not phoneme-classifier) — not the Windows Conda env
+  at all. And the Windows Conda env I just inspected has a real version
+  conflict: pytorch 1.9.1 installed alongside torchvision 0.15.2, which requires
+  torch>=2.0. That mismatch is almost certainly from an earlier unpinned conda 
+  install pytorch torchvision torchaudio ... that let conda's solver grab
+  incompatible versions — and it's very likely nobody ever actually got training
+  working natively on Windows Conda; the real working environment was the WSL
+  .venv.
+
+  Let me check what's actually on the WSL side before we decide anything.
+
+  Ran 6 shell commands (ctrl+o to expand)
+● Good call checking — that fully explains the mismatch. Here's what I found:
+
+  The environment that produced your "real" accuracy numbers no longer exists as
+  such. The Aug 31 evaluation transcript I read earlier shows it ran from
+  /home/danie/Workspaces/fast-api-phoneme-python/.venv/... (Python 3.12) — that
+  user/path doesn't exist in the WSL Ubuntu distro on this machine now. What
+  does exist is /mnt/c/Workspace/fast-api-phoneme-python — a separate, older
+  sibling git repo (own GitHub remote: danielmhair/fast-api-phoneme-python),
+  last touched May 2025, structured with src//requirements.txt instead of the
+  current workflows/ epic layout. That's an earlier prototype that
+  phoneme-classifier superseded — its .venv isn't WSL-usable (no bin/python, so
+  it was built as a Windows venv, not a WSL one) — so it's not a shortcut
+  either.
+
+  Separately, and more actionably: I found a real, diagnosable bug in the
+  current Windows Conda env, not just a vague "half-broken" state:
+
+  pytorch      1.9.1   (very old — from an unpinned conda install)
+  torchvision  0.15.2  (requires torch>=2.0)
+
+  That version mismatch is exactly what produces the C-extension import error.
+  It's not mysterious — some earlier conda install pytorch torchvision 
+  torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia (per README.md's documented
+  command, unpinned) let conda's solver land on an inconsistent combo.
+
+  This also lines up with something already in CLAUDE.md/README.md: the project
+  explicitly documents itself as "WSL/Linux training → Windows deployment 
+  pipeline." So the historical working setup for actually running training/eval
+  was WSL + a plain pip venv, not Windows-native Conda — Windows Conda may never
+  have fully worked for training; it may only have been used for lighter tasks
+  (ONNX inference testing, deployment). That reframes the question.
+
+  Q1 (revised): where should the harness actually run — WSL, or fixed Windows 
+  Conda?
+
+  My recommendation: WSL, with a fresh python -m venv + pip install -r 
+  requirements.txt (Linux wheels for torch/CUDA are far less
+  version-conflict-prone than Windows Conda channels, and it matches what's
+  already documented as the intended architecture and what actually worked
+  before). Windows Conda would still be fixable (pin pytorch>=2.0), but you'd be
+  re-fighting a battle this project has already lost twice.
+
+  Do you want to set up a fresh WSL venv for this (I can build the requirements
+  list from the current pyproject.toml/setup_conda.sh), or is there a reason you
+  want to stay Windows-native?
+
+❯ <ide_opened_file>The user opened the file                                     
+  c:\Workspace\phoneme-classifier\README.md in the IDE. This may or may not be  
+  related to the current task.</ide_opened_file>                                
+
+❯ WSL only                                                                      
+
+● Good — WSL it is. One quick follow-on that falls out of that same decision:
+  with WSL, do we still use Poetry, or drop it for a plain venv + pip install?
+
+  Given Poetry's pain was specifically Windows/CUDA wheel resolution, and the
+  project has now tried Poetry then partially migrated to Conda and hit trouble
+  both times, my recommendation is to drop Poetry as the dependency manager but 
+  keep poe (the task runner) — poe doesn't require Poetry to function (your
+  pyproject.toml already sets poetry_command = ""), so all the poe train-mlp/poe
+  test-all/etc. commands your docs already reference keep working unchanged. We
+  just install deps into a plain WSL venv via pip install -r requirements.txt,
+  matching the pattern that already worked in the old fast-api-phoneme-python
+  predecessor. I'll treat this as the default and move on unless you object.
+
+  ---
+  Q2: How should the CTC "decoding" fix actually work — greedy or beam search?
+
+  Quick plain-language version of what this means: a CTC model doesn't output
+  "the answer" directly — it outputs a probability guess for every tiny 
+  time-slice of the audio (e.g. 50 slices for a half-second clip), including a
+  special "blank" (silence/nothing) symbol. The current broken code averages
+  those 50 guesses together, which is like blurring 50 photos into one and
+  asking what it shows. The fix is to instead read the slices in order, collapse
+  repeated identical guesses into one, and drop the blanks — that's "greedy
+  decoding." Beam search is a fancier version that keeps several competing
+  guesses alive at once and picks the best overall sequence, rather than
+  committing greedily slice-by-slice — it mainly pays off for longer, ambiguous
+  sequences (like whole sentences).
+
+  My recommendation: greedy decoding for this pass. Your phonemes are short,
+  isolated single sounds (not sentences), so there's minimal ambiguity for beam
+  search to resolve, and greedy is much simpler to implement, debug, and
+  explain. Beam search becomes worth revisiting later if/when you evaluate CVC
+  sequences (see next question) and see it actually collapsing distinct phonemes
+  incorrectly.
+
+  Does greedy-only sound right for now, or do you want beam search in scope from
+  the start (e.g. because you already suspect greedy will blur similar-sounding
+  phonemes)?
+
+❯ <ide_opened_file>The user opened the file                                     
+  c:\Workspace\phoneme-classifier\classify_voice_onnx.sh in the IDE. This may   
+  or may not be related to the current task.</ide_opened_file>                  
+
+❯ However its currently setup. Also this file may give light to how we did this 
+  - run in wsl - code in this project.                                          
+  @CLAUDE.md already explains too                                               
+  ⎿  Read CLAUDE.md (367 lines)
+
+  Read 1 file (ctrl+o to expand)
+
+● This is a big clue — and it changes the picture again. classify_voice_onnx.sh
+  copies ONNX models from
+  \\wsl.localhost\Ubuntu\home\danie\Workspaces\fast-api-phoneme-python\dist\...
+  into a third, completely separate project:
+  C:\Users\danie\Documents\MyProject\AiServer\fast-api-python (its own Windows
+  .venv, FastAPI server). Neither of those is this repo. Let me check whether
+  training has ever actually completed successfully inside this repo
+  (phoneme-classifier, Poetry-based, workflows/ structure) at all, or whether
+  every real number traces back to that old WSL project.
+
+  Ran 1 shell command (ctrl+o to expand)
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ <ide_opened_file>The user opened the file                                     
+  c:\Workspace\phoneme-classifier\classify_voice_onnx.sh in the IDE. This may   
+  or may not be related to the current task.</ide_opened_file>                  
+
+❯ Oh, fast api - although it says that, we aren't.                              
+  We had a fast api server, but decided to use onnx instead. How it works is    
+  found in the workflows - see the files in @workflows/ctc_w2v2_workflow/       
+  ⎿  Listed directory workflows\ctc_w2v2_workflow\
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Good correction — noted, the FastAPI server is dead, ONNX inference goes
+  straight through the workflows/ scripts now. That also lets me fix something I
+  got wrong two turns ago.
+
+  Walking back my Poetry suggestion. CLAUDE.md is explicit: "Always use poetry 
+  run to execute scripts, even for python and pip so we know its running in the 
+  poetry environment." Combined with "WSL only," the clean answer is simpler
+  than what I proposed — just install Poetry inside WSL and keep using poetry 
+  run poe ... as documented, not the Windows-native Poetry that's currently on
+  PATH. No convention change needed, just relocate it. I shouldn't have
+  suggested dropping it without checking the existing directive first.
+
+  Bigger thing I found while checking dist/, and this one actually matters: I
+  looked for trained model files anywhere in the repo. There's no
+  workflows/mlp_control_workflow/dist/, no workflows/ctc_w2v2_workflow/dist/, no
+  workflows/ctc_wavlm_workflow/dist/ — none of the three workflow output
+  directories exist. What does exist is a stale top-level dist/
+  (phoneme_mlp.onnx, wav2vec2.onnx, label_encoder.pkl, images prefixed
+  initial-...) with no CTC model in it at all — no wav2vec2_ctc.onnx, no
+  wavlm_ctc.onnx. That matches the filename pattern from
+  classify_voice_onnx.sh's WSL copy source, and looks like it predates the
+  workflows/ epic reorg entirely (probably from when this was a flat MLP-only
+  script, before Epic 1's three-way split existed).
+
+  Put plainly: I can't find evidence that the current workflows/ pipeline — the 
+  one every doc, poe train-ctc, poe train-wavlm-ctc command describes — has ever
+  actually been run to completion and produced a WavLM-CTC or Wav2Vec2-CTC ONNX
+  model in this repo. The 87%/85.35%/79.73% numbers quoted everywhere may trace
+  back to the old WSL fast-api-phoneme-python project (or an even earlier
+  pre-workflows/ run here), not to the code that currently exists under
+  workflows/ctc_w2v2_workflow/ and workflows/ctc_wavlm_workflow/.
+
+  Q3: Has the current workflows/ pipeline (post-reorg) ever actually been run 
+  end-to-end on any machine, or would this be its first real run?
+
+  If it's never been run, that changes the plan materially — before we can talk
+  about fixing CTC decoding or building LOSO evaluation, we need poe train-all
+  to simply complete and produce three real ONNX models, and we should expect
+  first-run bugs (path issues, shape mismatches, etc.) independent of the
+  accuracy questions. My recommendation either way: treat "run the current
+  pipeline for the first time in a clean WSL env and see what happens" as the
+  literal next concrete action, before writing any new harness code — it's the
+  cheapest possible way to find out how much of the existing "87%" story is
+  real.
+
+  Do you know whether this exact workflows/ code has completed a training run
+  before, or should we assume it hasn't?
+
+❯ <ide_selection>The user selected the lines 27 to 27 from                      
+  c:\Workspace\phoneme-classifier\classify_voice_onnx.sh:                       
+  anie\\Workspaces\\fas                                                         
+                                                                                
+  This may or may not be related to the current task.</ide_selection>           
+
+❯ Also know this - it enlightens things                                         
+  https://app.notion.com/p/Phoneme-Classifier-Explained-231502b4855680d9b3a8ee0 
+  cf303e41e#1fc502b485568029acb0c42d5d2fbfc0 (notion mcp)                       
+  https://app.notion.com/p/Phoneme-Classification-Concepts-249502b4855680eb8edd 
+  e4718b5d8b34                                                                  
+                                                                                
+  Ah, I think I figured it out. I have my other computer where I ran this       
+  (since it has better specs) - its location is at                              
+  /c/Workspace/fast-api-phoneme-python and its folder looks like:               
+  $ ls -la                                                                      
+  total 739                                                                     
+  drwxr-xr-x 1 danie 197609      0 Sep 23  2025 ./                              
+  drwxr-xr-x 1 danie 197609      0 Sep 22  2025 ../                             
+  drwxr-xr-x 1 danie 197609      0 Sep 23  2025 .claude/                        
+  -rw-r--r-- 1 danie 197609    121 May 27  2025 .env                            
+  -rw-r--r-- 1 danie 197609     73 Apr  3  2025 .flake8                         
+  drwxr-xr-x 1 danie 197609      0 Jul  9 07:11 .git/                           
+  -rw-r--r-- 1 danie 197609    277 Sep 22  2025 .gitignore                      
+  drwxr-xr-x 1 danie 197609      0 Aug 27  2025 .pytest_cache/                  
+  drwxr-xr-x 1 danie 197609      0 Sep 22  2025 .serena/                        
+  drwxr-xr-x 1 danie 197609      0 Sep 22  2025 .vscode/                        
+  -rw-r--r-- 1 danie 197609   2715 Aug 23  2025 classify_voice_onnx.sh          
+  -rw-r--r-- 1 danie 197609    910 Sep 23  2025 classify_voice_pkl.sh           
+  -rw-r--r-- 1 danie 197609  16835 Sep 23  2025 CLAUDE.md                       
+  drwxr-xr-x 1 danie 197609      0 Aug 30  2025 configs/                        
+  -rwxr-xr-x 1 danie 197609   2339 Aug 23  2025 create_temp_metadata.py*        
+  drwxr-xr-x 1 danie 197609      0 Sep 22  2025 dist/                           
+  drwxr-xr-x 1 danie 197609      0 May 28  2025 dist_last/                      
+  drwxr-xr-x 1 danie 197609      0 Sep 22  2025 docs/                           
+  drwxr-xr-x 1 danie 197609      0 Sep 23  2025 evaluation/                     
+  drwxr-xr-x 1 danie 197609      0 Aug 27  2025 inference/                      
+  drwxr-xr-x 1 danie 197609      0 Sep 22  2025 logs/                           
+  -rw-r--r-- 1 danie 197609  11983 Sep 23  2025 NEXT_STEPS_GUIDE.md             
+  -rw-r--r-- 1 danie 197609 587565 Sep 23  2025 poetry.lock                     
+  -rw-r--r-- 1 danie 197609  14810 Sep 23  2025 pyproject.toml                  
+  -rw-r--r-- 1 danie 197609  14987 Aug 29  2025 README.md                       
+  drwxr-xr-x 1 danie 197609      0 Jun  4  2025 recordings/                     
+  drwxr-xr-x 1 danie 197609      0 May 28  2025 recordings_lower_quality/       
+  drwxr-xr-x 1 danie 197609      0 May 28  2025 recordings_lower_quality_2/     
+  drwxr-xr-x 1 danie 197609      0 Jun  4  2025 recordings_lowest_quality_1/    
+  -rw-r--r-- 1 danie 197609   1467 Sep 23  2025 requirements.txt                
+  -rw-r--r-- 1 danie 197609  14805 Aug 22  2025 SUPERCLAUDE.md                  
+  drwxr-xr-x 1 danie 197609      0 Sep 22  2025 tests/                          
+  drwxr-xr-x 1 danie 197609      0 Aug 23  2025 workflows/                      
+                                                                                
+  So when we finish this grill-me, I will be in that logic. Any command you     
+  would like me to run to verify anything?                                      
+
+  Called Notion 2 times (ctrl+o to expand)
+
+● Both Notion pages just resolved a lot — and surfaced something more important
+  than the environment question.
+
+  What the Notion docs reveal
+
+  1. Unreal integration already exists and already works (for the old MLP 
+  pipeline). There's a PhonemeClassifierSubsystem in the Unreal project, a
+  GameMode wired to it, and an "On Phoneme Classified" event firing every ~2s —
+  already consuming wav2vec2.onnx + phoneme_classifier.onnx (MLP) +
+  phoneme_labels.json dropped into <Game-Project>/Content/Models/. This means
+  Epic 6 (Unreal) isn't pure future work — there's a live consumption point
+  today, just wired to the MLP model, not CTC. That changes my earlier "runtime
+  is a late-epic concern" framing a bit: the live CTC decoding would need
+  equivalent C++ work before CTC could ever reach that subsystem.
+
+  2. You already lived through the exact failure I was warning about — for the 
+  MLP model, a while ago. "Phoneme Classifier Explained" documents three
+  separate numbers from that Phase 1 run:
+  - Test Accuracy (w3, proper held-out split): 82% (the doc's headline "87%"
+  apparently rounds/conflates this elsewhere)
+  - Training-file batch accuracy (w4): 95–99% — explicitly labeled "memory, not
+  smarts" in your own doc, i.e. you already knew this number is inflated and not
+  a generalization signal
+  - Real-world accuracy: 18–20% ❌ — live/actual usage, documented as a known
+  failure
+
+  So the train/test-vs-real-world gap I flagged isn't a new risk I'm inventing —
+  it already happened once, you already caught it, and it's worse than the
+  leakage bug alone would predict. That's important: it means a same-dataset
+  random or speaker split (even done correctly) still wouldn't have caught this
+  historically, because 82% was a legitimately proper test split and it still
+  collapsed to 18-20% in the real world. The gap is partly a "static dataset vs.
+  live mic" problem, not just a "leakage" problem.
+
+  3. There's a documented precedent for a much cheaper, different bug than the 
+  one I hypothesized. The same doc shows a "favoring only a few phonemes"
+  failure — the model scores ~99% on 9 phonemes and ~0.6% (worse than random) on
+  the rest. That signature — a handful of classes near-100%, everything else
+  near-zero — is the classic symptom of a label-index mismatch (the ONNX model's
+  output order not matching phoneme_labels.json's order), not a modeling
+  problem. Your current WavLM-CTC 2.78% (worse than the ~2.7% random-chance
+  floor) has exactly this shape. I assumed "broken CTC averaging" was the cause
+  — that's still likely part of it, but given you've hit label-mismatch before,
+  that needs to be ruled out first, since it's a 10-minute check versus
+  rewriting the decoder.
+
+  Commands for the other computer
+
+  When you're there, this is the priority order — cheap, high-information checks
+  before we touch any code:
+
+  cd /c/Workspace/fast-api-phoneme-python  # or wherever it lands as 
+  `phoneme-classifier`
+
+  # 1. Confirm env actually works
+  poetry env info
+  poetry run python -c "import torch, transformers, onnxruntime, sklearn; 
+  print(torch.__version__, transformers.__version__, onnxruntime.__version__, 
+  sklearn.__version__)"
+
+  # 2. Has the current workflows/ pipeline (not the old flat one) actually 
+  produced CTC output?
+  find workflows -maxdepth 2 -type d -name dist
+  ls -la workflows/*/dist/ 2>&1
+  ls -la dist/ dist_last/ 2>&1   # what's dist_last/ for — a previous-run 
+  snapshot for regression comparison?
+
+  # 3. Label-index sanity check (rule out the historical label-mismatch bug) — 
+  for each model:
+  poetry run python -c "
+  import json, pickle
+  labels = 
+  json.load(open('workflows/mlp_control_workflow/dist/phoneme_labels.json'))
+  le = pickle.load(open('workflows/mlp_control_workflow/dist/label_encoder.pkl',
+  'rb'))
+  print('labels.json:', labels)
+  print('label_encoder classes_:', list(le.classes_))
+  print('MATCH:', labels == list(le.classes_))
+  "
+
+  # 4. Was there ever a proper train/test split manifest saved (vs. just 
+  random_state=42 reproducible-but-undocumented)?
+  find . -iname "*split*" -o -iname "*test_files*" -o -iname "*holdout*"
+  2>/dev/null | grep -v .git
+
+  # 5. Exact working dependency versions, so I can pin the same in a fresh WSL 
+  env here
+  poetry show torch transformers onnxruntime scikit-learn 2>&1
+
+  No rush on these — whenever you're actually at that machine is fine. Let's
+  keep going on the plan itself in the meantime.
+
+  Back to the interview — Q3 revised
+
+  Given the 18-20% real-world precedent, I want to widen what "harness done"
+  means. My original plan only covered LOSO on the existing recorded dataset.
+  Given that a proper 82% test split still masked an 18-20% real-world collapse
+  before, a same-dataset split — even a rigorous one — may not be sufficient
+  evidence of "this actually works."
+
+  Q3: Should the harness's definition of "done" require a small 
+  live-mic/fresh-recording spot-check (not just held-out files from the existing
+  dataset), before we trust any LOSO number?
+
+  My recommendation: yes, but keep it tiny for this pass — e.g., you personally
+  record 10-20 fresh single-phoneme clips per model in one sitting (new session,
+  new day, not from the existing recordings/ corpus) as a smoke test after LOSO
+  looks good, specifically to catch a repeat of the 18-20% collapse before we
+  trust the number. This isn't the full "Game for Data Collection" epic — just a
+  cheap tripwire. If fresh-mic accuracy falls far below LOSO accuracy, that's a
+  signal the harness itself still isn't measuring the real thing (e.g.,
+  mic/environment mismatch, a preprocessing difference between training and live
+  inference).
+
+  Does that match what you want "done" to mean, or is a same-dataset LOSO split
+  enough to trust for this first pass, with live-mic validation deferred to
+  later?
+
+❯ $ poetry env info                                                             
+                                                                                
+  Virtualenv                                                                    
+  Python:         3.9.13                                                        
+  Implementation: CPython                                                       
+  Path:           C:\Users\danie\AppData\Local\pypoetry\Cache\virtualenvs\phone 
+  me-classifier-6FxW3z9D-py3.9                                                  
+  Executable:     C:\Users\danie\AppData\Local\pypoetry\Cache\virtualenvs\phone 
+  me-classifier-6FxW3z9D-py3.9\Scripts\python.exe                               
+  Valid:          True                                                          
+                                                                                
+  Base                                                                          
+  Platform:   win32                                                             
+  OS:         nt                                                                
+  Python:     3.9.13                                                            
+  Path:       C:\Users\danie\AppData\Local\Programs\Python\Python39             
+  Executable: C:\Users\danie\AppData\Local\Programs\Python\Python39\python.exe  
+                                                                                
+  danie@DHAIR-WORK-64GB MINGW64 /c/Workspace/fast-api-phoneme-python (main)     
+  $ poetry run python -c "import torch, transformers, onnxruntime, sklearn;     
+  print(torch.__version__, transformers.__version__, onnxruntime.__version__,   
+  sklearn.__version__)"                                                         
+  Traceback (most recent call last):                                            
+    File "<string>", line 1, in <module>                                        
+  ModuleNotFoundError: No module named 'transformers'                           
+                                                                                
+  danie@DHAIR-WORK-64GB MINGW64 /c/Workspace/fast-api-phoneme-python (main)     
+  $                                                                             
+                                                                                
+  danie@DHAIR-WORK-64GB MINGW64 /c/Workspace/fast-api-phoneme-python (main)     
+  $ poetry run python -c "import torch, transformers, onnxruntime, sklearn;     
+  print(torch.__version__, onnxruntime.__version__, sklearn.__version__)"       
+  Traceback (most recent call last):                                            
+    File "<string>", line 1, in <module>                                        
+  ModuleNotFoundError: No module named 'transformers'                           
+                                                                                
+  danie@DHAIR-WORK-64GB MINGW64 /c/Workspace/fast-api-phoneme-python (main)     
+  $ poetry run python -c "import torch, onnxruntime, sklearn;                   
+  print(torch.__version__, onnxruntime.__version__, sklearn.__version__)"       
+  Traceback (most recent call last):                                            
+    File "<string>", line 1, in <module>                                        
+  ModuleNotFoundError: No module named 'onnxruntime'                            
+                                                                                
+  danie@DHAIR-WORK-64GB MINGW64 /c/Workspace/fast-api-phoneme-python (main)     
+  $ poetry run python -c "import torch, sklearn; print(torch.__version__,       
+  sklearn.__version__)"                                                         
+  2.3.1+cpu 1.6.1                                                               
+                                                                                
+  $ find workflows -maxdepth 2 -type d -name dist                               
+  workflows/ctc_w2v2_workflow/dist                                              
+  workflows/ctc_wavlm_workflow/dist                                             
+  workflows/mlp_control_workflow/dist                                           
+                                                                                
+  $ ls -la workflows/*/dist/ 2>&1                                               
+  workflows/ctc_w2v2_workflow/dist/:                                            
+  total 48967                                                                   
+  drwxr-xr-x 1 danie 197609        0 Sep 22  2025 ./                            
+  drwxr-xr-x 1 danie 197609        0 Sep 23  2025 ../                           
+  lrwxrwxrwx 1 danie 197609       72 Aug 23  2025 augmented_recordings ->       
+  /home/danie/Workspaces/fast-api-phoneme-python/dist/augmented_recordings      
+  -rw-r--r-- 1 danie 197609   111221 Aug 23  2025 ctc_batch_test_results.csv    
+  -rw-r--r-- 1 danie 197609     5388 Aug 23  2025                               
+  ctc_classification_report.json                                                
+  -rw-r--r-- 1 danie 19                                                         
+  ──── (149 lines hidden) ───────────────────────────────────────────────────── 
+  ipy >=1.6.0                                                                   
+   - threadpoolctl >=3.1.0                                                      
+                                                                                
+  required by                                                                   
+   - librosa requires >=0.20.0                                                  
+   - montreal-forced-aligner requires *                                         
+   - pynndescent requires >=0.18                                                
+   - umap-learn requires >=1.6                                                  
+                                                                                
+  danie@DHAIR-WORK-64GB MINGW64 /c/Workspace/fast-api-phoneme-python (main)     
+  $ poetry show torch                                                           
+   name         : torch                                                         
+                                                                                
+   version      : 2.3.1                                                         
+                                                                                
+   description  : Tensors and Dynamic neural networks in Python with strong GPU 
+  acceleration                                                                  
+                                                                                
+  dependencies                                                                  
+   - filelock *                                                                 
+   - fsspec *                                                                   
+   - jinja2 *                                                                   
+   - mkl >=2021.1.1,<=2021.4.0                                                  
+   - networkx *                                                                 
+   - nvidia-cublas-cu12 12.1.3.1                                                
+   - nvidia-cuda-cupti-cu12 12.1.105                                            
+   - nvidia-cuda-nvrtc-cu12 12.1.105                                            
+   - nvidia-cuda-runtime-cu12 12.1.105                                          
+   - nvidia-cudnn-cu12 8.9.2.26                                                 
+   - nvidia-cufft-cu12 11.0.2.54                                                
+   - nvidia-curand-cu12 10.3.2.106                                              
+   - nvidia-cusolver-cu12 11.4.5.107                                            
+   - nvidia-cusparse-cu12 12.1.0.106                                            
+   - nvidia-nccl-cu12 2.20.5                                                    
+   - nvidia-nvtx-cu12 12.1.105                                                  
+   - sympy *                                                                    
+   - triton 2.3.1                                                               
+   - typing-extensions >=4.8.0                                                  
+                                                                                
+  required by                                                                   
+   - accelerate requires >=2.0.0                                                
+   - openai-whisper requires *                                                  
+   - torchaudio requires 2.3.1                                                  
+   - transformers requires >=2.0                                                
+                                                                                
+  README.md                                                                     
+  ### Prerequisites                                                             
+                                                                                
+  - Python 3.9+                                                                 
+  - Poetry (for dependency management)                                          
+  - CUDA-compatible GPU (recommended for training)                              
+                                                                                
+  ### Setup                                                                     
+                                                                                
+  ```bash                                                                       
+  # Install Poetry (if needed)                                                  
+  curl -sSL https://install.python-poetry.org | python3 -                       
+                                                                                
+  # Complete setup: install dependencies + CUDA support                         
+  poe setup                                                                     
+                                                                                
+  # Or step by step:                                                            
+  poetry install                                                                
+  poetry add --group dev poethepoet                                             
+  poe setup-cuda                                                                
+  ```                                                                           
+                                                                                
+  ### Epic 1: Train & Compare All Three Models                                  
+                                                                                
+  ```bash                                                                       
+  # Epic 1: Train all three models for comprehensive comparison                 
+  poe train-all                                                                 
+                                                                                
+  # Test all models to compare performance                                      
+  poe test-all                                                                  
+                                                                                
+  # Individual model training:                                                  
+  poe train-mlp           # MLP Control (baseline)                              
+  poe train-ctc           # Wav2Vec2 CTC                                        
+  poe train-wavlm-ctc     # WavLM CTC (best performance)                        
+                                                                                
+  # Interactive phoneme recording & testing                                     
+  poe record-cli                                                                
+                                                                                
+  # Epic 2: Real-time temporal brain testing                                    
+  poe temporal-test                    # Interactive temporal brain testing     
+  poe temporal-test -m wavlm_ctc       # Use specific model (mlp_control,       
+  wav2vec2_ctc, wavlm_ctc)                                                      
+  poe temporal-test --list-models      # Show available models                  
+  poe temporal-test --list-devices     # Show audio devices                     
+  poe test-temporal                    # Run all temporal brain tests (47       
+  tests)                                                                        
+  ```                                                                           
+                                                                                
+  Q3: No what is in the readme is the latest - what you see in notion is an old 
+  version.                                                                      
+
+● Good — that resolves Q3 cleanly: README/CLAUDE.md's Epic 1 status is current
+  truth, the Notion "Explained" doc (82% test / 18-20% real-world) is a
+  superseded snapshot from before the CTC work existed. I won't treat that
+  18-20% number as still-relevant, though I'd still like the live-mic-spot-check
+  question answered on its own merits (below).
+
+  Three concrete, important things came out of that dump:
+
+  1. The "WSL only" call was wrong — the actual proven recipe is Windows-native 
+  Poetry. poetry env info on that machine shows a real Windows venv
+  (C:\Users\danie\AppData\Local\pypoetry\..., Python 3.9.13, torch 2.3.1+cpu
+  imports fine) driven from Git Bash (MINGW64), not WSL bash. WSL only shows up
+  as the source of two symlinked data folders (organized_recordings,
+  augmented_recordings point at /home/danie/Workspaces/...) — so data prep
+  touched WSL at some point, but the actual poetry run training/CTC/ONNX-export
+  work that produced your real results ran on native Windows Poetry. I'd rather
+  replicate the exact setup that's proven to work than keep guessing — recommend
+  we target Windows-native Poetry on this machine (matching torch==2.3.1,
+  transformers==4.50.3, onnxruntime==1.20.1, scikit-learn==1.6.1) instead of
+  WSL. Sound right, given the evidence?
+
+  2. Even the reference machine has a real, undocumented bug: Wav2Vec2 CTC's 
+  ONNX export is broken. workflows/ctc_w2v2_workflow/dist/phoneme_ctc.onnx is 0 
+  bytes. workflows/ctc_wavlm_workflow/dist/phoneme_ctc.onnx is a real 5.3MB
+  file. So the model your README calls "🏆 BEST PERFORMER, 87.00%, safest
+  shippable front end" has no working exported artifact — it can't currently be
+  loaded for ONNX inference at all, even on the machine everything else worked
+  on. That's independent of the CTC-decoding-averaging bug and the
+  label-mismatch precedent — it's a third, distinct, very concrete thing to fix.
+  I'm adding it to scope.
+
+  3. The label-mismatch check didn't actually run — the multi-line python -c 
+  "..." came back with zero output, which means Git Bash/MINGW64 swallowed it
+  rather than it passing. Don't worry about re-running it now — I'll hand you a
+  proper script file (not inline -c) once we're actually executing, so it runs
+  reliably.
+
+  Also worth noting for later, not now: no test-split manifest exists anywhere
+  (find ... -iname "*split*" came back empty), so "which files were held out" is
+  only reproducible by re-running the original training code unchanged with the
+  same random_state. That's fragile provenance we should fix as part of the
+  harness (save the actual file list, not just a seed).
+
+  I'll treat #1 as settled unless you object, and I've got a growing "fix list"
+  (label-index check, W2V2-CTC ONNX export, split-manifest persistence) to fold
+  into the PRD alongside the CTC-decoding and LOSO work.
+
+  Continuing the interview — still open from before:
+
+  Q3 (live-mic check): given the 18-20% number turned out to be from the 
+  superseded MLP-only phase, do you still want a small fresh-recording smoke 
+  test as part of "harness done" for the new CTC models, or is same-dataset LOSO
+  sufficient for this pass?
+
+  And next up after that, the meatier ML-design ones I haven't gotten to yet:
+  how to treat Sky/Cassie (speech-impediment speakers) in the LOSO split, what
+  numeric bar counts as "good enough" on Chloe to proceed vs. not, and whether
+  CVC-sequence evaluation is in scope now or later. Want me to keep going
+  through those one at a time, or would you rather I batch the remaining ones
+  together at this point?
+
+❯ <ide_opened_file>The user opened the file c:\Workspace\phoneme-classifier\wor 
+  kflows\mlp_control_workflow\validations\classify_voice_onnx.py in the IDE.    
+  This may or may not be related to the current task.</ide_opened_file>         
+
+❯ 1. I think something didn't install without WSL - can't remember. I'd like it 
+  without WSL so I'm willing to try it without WSL.                             
+  2. It would be helpful. We do have test files like                            
+  @workflows/mlp_control_workflow/validations/classify_voice_onnx.py            
+  ⎿  Read workflows\mlp_control_workflow\validations\classify_voice_onnx.py (98 
+     lines)
+● Both noted — Windows-native Poetry it is, and good call surfacing that script.
+
+  One thing jumps out from classify_voice_onnx.py worth flagging now rather than
+  discovering later: line 52-53 —
+
+  embedding = outputs[0]  # [1, T, H]
+  # embedding = last_hidden.mean(axis=1)  # [1, H]
+
+  The mean-pooling line is commented out, but the MLP was trained on mean-pooled
+  embeddings (that's what wav2vec2_traced_mean.pt means — "mean" is in the
+  filename). If wav2vec2.onnx here outputs the full per-timestep sequence [1, T,
+  H] rather than a pre-pooled [1, H], this script would be feeding the MLP a
+  shape it was never trained on. It's possible wav2vec2.onnx already has the
+  mean-pooling baked into the ONNX graph itself (matching the "_traced_mean"
+  naming), in which case the comment is just stale and this is a non-issue — I
+  can't tell from static reading alone. I'm not treating this as
+  confirmed-broken, just flagging it as a cheap thing to check the first time we
+  actually run this script (the print("embedding shape...") lines already in
+  the code will answer it immediately).
+
+  Q3 marked resolved: live-mic spot-check is in scope, reusing this script's
+  pattern (record → extract → classify) extended to the CTC models, as a
+  tripwire after LOSO looks good — not a from-scratch build.
+
+  Moving to the next question.
+
+  ---
+  Q4: How should Sky and Cassie (your two speech-impediment speakers) be used in
+  the LOSO evaluation?
+
+  Quick reminder of why this matters: LOSO (leave-one-speaker-out) means
+  training on 4 speakers and testing on the 5th, rotating through all 5, so you
+  get an honest "never heard this voice before" score for each person. The
+  question is what to do with Sky (15, speech impediment, improving) and Cassie
+  (11, speech impediment) specifically, since their recordings may contain
+  mislabeled-on-purpose data — e.g., if a folder is labeled /θ/ because that's
+  what they were asked to say, but what they actually produced was closer to /f/
+  (a common substitution), training on that folder teaches the model to
+  associate the /f/ sound with the /θ/ label — actively corrupting that phoneme
+  class.
+
+  Three options:
+  1. Include them normally in training + LOSO rotation, same as everyone else.
+  2. Exclude them from training entirely, use only for a separate "how does this
+  model handle atypical speech" calibration/eval set.
+  3. Include them in training, but flag their most difficult phonemes (the ones
+  tied to their specific impediment) for manual review before trusting those
+  labels.
+
+  My recommendation: option 2 — exclude from training, use as a held-out
+  calibration set. Reasoning: you don't yet know which of their clips are
+  mislabeled (prompted-vs-produced), so including them risks quietly poisoning
+  specific phoneme classes with no way to detect it. As held-out data instead,
+  they become valuable in a different way — testing whether the model behaves
+  kindly (doesn't confidently reject) on atypical speech, which matters a lot
+  for a product meant to encourage kids, some of whom will have exactly this
+  profile.
+
+  Does that match your intent, or did you specifically want their data counted
+  toward training since Sky is "improving over time" and represents realistic
+  target-user variance you want the model exposed to?
+
+❯ In normally for now - I did pretty good and making sure they did good on the  
+  sounds                                                                        
+
+● Good, that resolves it — noted you specifically controlled for
+  produced-vs-prompted accuracy during those recording sessions, so the labels
+  are trustworthy. Q4 resolved: include Sky and Cassie normally in training and 
+  the LOSO rotation, same as everyone else.
+
+● Q5: What LOSO accuracy on Chloe counts as "good enough to keep going" vs. 
+  "something's actually wrong"?
+
+  This matters because we've now seen twice in this conversation that a bad
+  number can mean two very different things: a genuine accuracy ceiling (the
+  model really isn't good enough yet) vs. a pipeline bug (label mismatch, broken
+  decoding) that produces a catastrophically bad number that looks like "the
+  model failed" but actually means "the harness is broken." We need a bar that
+  tells those apart, not just one pass/fail line.
+
+  Useful anchor: your own Notion vision doc (Theme: APR) already set a target —
+  PER ≤ 20% initial (roughly translates to ≥80% accuracy for single isolated
+  phonemes) and F1 ≥ 0.90 as the longer-term online-detection goal. That's not a
+  number I'm inventing; it's already your documented bar.
+
+  My recommendation — three tiers, not one cutoff:
+  - Below ~15% (near the ~2.7% random-chance floor for 37 classes): treat as a
+  bug signal, not a verdict. Something in the pipeline is broken (label
+  mismatch, decoding, wrong export) — go debug, don't conclude "this model
+  doesn't work."
+  - ~15%–75%: real signal, but not game-ready. Iterate (more data/augmentation,
+  maybe CVC context helps CTC specifically) before moving forward.
+  - ~75%+ on Chloe specifically: matches both your documented PER≤20% target and
+  the historical Phase-1 MLP's 82% test-split number, so it's a bar you've hit
+  before — good enough to move to Phase 2 (GOP scoring layer, live-mic pilot).
+
+  Does that tiered framing work, or did you have a specific number in mind
+  already (e.g., from a past conversation with yourself/ChatGPT) that I should
+  anchor to instead?
+
+❯ Ignore my documented information as its from AI and not sure its valuable.    
+  Think for yourself on this one.                                               
+
+● Fair — let me actually work this out instead of borrowing a number.
+
+  What I can say from pure math, no citation needed: 37 phoneme classes means
+  random guessing gets ~2.7%. Anything near that (say, under ~10%) is not "the
+  model is bad," it's "something is broken" (label mismatch, decoding bug) —
+  that's not a judgment call, it's arithmetic. That tier of my earlier answer
+  I'll keep as-is.
+
+  Where I was on shakier ground: the "75%+" number. I'd leaned on the Notion
+  doc's PER≤20% target without fully separating it from my own reasoning, which
+  is exactly what you're flagging. Let me rebuild that part from what we
+  actually know:
+
+  - I don't have a trustworthy external benchmark for this exact task — isolated
+  single-phoneme classification with 5 speakers. The child-ASR literature I
+  read earlier (Block Medin et al., Interspeech 2024) reports PER on continuous 
+  reading (whole sentences, French, much bigger training sets) — a harder,
+  differently-shaped problem than "classify one isolated sound already trimmed
+  to a 3-second window." Borrowing that number would be the same mistake as
+  borrowing the Notion one, just from a different AI-adjacent source.
+  - What I do trust is comparison within your own data: how much worse is 
+  Chloe's LOSO accuracy than the average LOSO accuracy of the other four 
+  speakers, measured the exact same way? That's an apples-to-apples number your
+  own model produces, not an imported one. A gap of roughly 15-20 points between
+  "average adult/older-kid held-out speaker" and "Chloe held-out" is a normal
+  cost of speaker-independent generalization. A much bigger gap than that
+  specifically for Chloe means the model isn't transferring to her age/voice at
+  all — which is the single most important number here, since she's your actual
+  target-user proxy.
+  - Separately, there's a floor that isn't about the model at all, it's about
+  the product: a phonics-feedback tool that confidently tells a 7-year-old they
+  said a sound wrong when they said it right (or vice versa) too often will
+  discourage rather than help — that's a UX argument, not a stats one, and no
+  amount of temporal-brain smoothing fixes a genuinely wrong high-confidence
+  prediction, it only suppresses low-confidence ones. My gut, reasoning about a
+  real kid's tolerance for being wrongly corrected, puts that floor somewhere
+  around 65-70% raw single-shot accuracy on Chloe — below that, I'd expect the
+  experience to feel more frustrating than encouraging even with good UI
+  framing.
+
+  So, independently: bug floor ~10%, usability floor ~65-70% on Chloe 
+  specifically, and the real pass/fail signal is the size of the gap between 
+  Chloe and the other four speakers' average LOSO score, not a single absolute 
+  number. I'm less certain about the 65-70% figure than the other two pieces —
+  it's a reasoned guess about kid tolerance, not a measurement. Does that
+  reasoning hold up to you, or does something about the "how wrong can we be
+  before it demoralizes a kid" piece feel off given what you've seen with your
+  own kids testing this?
+
+❯ 70% feels very low                                                            
+
+● You're right, and I undersold it. Let me redo the reasoning rather than just
+  nudge the number.
+
+  If raw accuracy is 70%, that's roughly 1 in 3 wrong on a fresh kid's voice.
+  For a product whose entire pitch is "instant, kind, trustworthy feedback,"
+  that's not a minor rough edge — a parent watching their kid get told "wrong"
+  for a sound they clearly said right, three times in ten, stops trusting the
+  tool fast, and a kid picks up on that inconsistency even faster. I was
+  anchoring on "does one wrong answer ruin a session," but the real bar should
+  be "does the pattern of wrongness make a parent or kid stop believing the
+  feedback is meaningful" — and that pattern breaks down well before 70%.
+
+  Revised, independently: I'd put the real usability floor around ~85% on Chloe.
+  Reasoning: at 1-in-10-ish error rate, wrong feedback reads as an occasional
+  hiccup a kid shrugs off; by 1-in-5 to 1-in-3, it starts reading as "this thing
+  doesn't actually listen," which is worse for a learning tool than no feedback
+  at all.
+
+  Here's the honest tension I need to flag rather than paper over: with only 4
+  other speakers to train on (one adult, one 10-year-old, two teens with speech
+  impediments) and zero other 7-year-olds, hitting 85% on Chloe in this first
+  pass is genuinely uncertain — I can't promise the data supports that yet. So I
+  want to decouple two different things that I was conflating:
+
+  - "Is the harness done and trustworthy" — that's just "no bugs, correctly
+  measured," no accuracy number attached. A LOSO run that comes back at, say,
+  65% is a successful harness result if it's bug-free — it told us the truth.
+  - "Is the model ready to put in front of a real kid" — that's the ~85% bar,
+  and if we don't hit it this pass, the honest conclusion is "needs more
+  target-age data" (which is literally what the Game-for-Data-Collection epic
+  exists to fix), not "the project failed."
+
+  Does that split make sense — ship-bar of ~85% on Chloe, but a below-bar result
+  is treated as "we now know what to fix" rather than a dead end?
+
+❯ Yes - though 90+ sounds better - 85 is good for now                           
+
+● Good — 85% as the working bar for now, aspiration of 90+ noted for later.
+  Marking Q5 resolved.
+
+● Q6: Should this harness pass also evaluate CVC sequences (e.g., "bat" = 
+  /b/-/æ/-/t/), or stay scoped to single isolated phonemes only?
+
+  Quick reminder why this is on the table: your own internal debugging chat
+  (back in the Epic 2 debugging session) floated synthetically stitching
+  isolated phoneme clips together with silence gaps to give CTC a "fair"
+  sequence-shaped test, since CTC's real strength is sequence alignment, not
+  single-token classification. That same conversation talked itself out of it —
+  synthetic concatenation doesn't reflect how a kid actually produces a CVC word
+  (real coarticulation blends sounds together; stitched clips with silence
+  between them don't), so it risks testing something unrealistic.
+
+  My recommendation: single-phoneme only for this pass. Reasons:
+  1. Your actual recordings/ dataset is 100% isolated single-phoneme clips —
+  there's no real CVC audio to evaluate against right now. Building CVC eval
+  this pass means either synthetic stitching (the thing you already talked
+  yourselves out of) or new data collection (which is squarely the "Game for
+  Data Collection" epic's job, not this fix-the-harness epic's job).
+  2. It keeps this pass focused on the one thing it needs to prove: is the CTC
+  decoding fix legitimate, do the LOSO numbers hold up. Mixing in a second,
+  differently-shaped evaluation (CVC) makes it harder to tell which result is
+  teaching you what.
+  3. CVC evaluation becomes real and valuable after you're collecting real
+  CVC-carrier recordings (per the vision doc's stated data strategy of "isolated
+  phones + CVC carriers"), which naturally happens once Epic 5 exists.
+
+  Does that match — single-phoneme scope now, CVC deferred until there's real
+  CVC audio to test against?
+
+❯ No the whole point are isolated. The idea is that the player (child playing)  
+  will say things like "b" "b" as they play and its interactive.                
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ Sorry, I meant No on full words - so yes, single phoneme scope now            
+
+● Good, that confirms the design intent too — always-known-target, isolated
+  phoneme, interactive. Marking Q6 resolved.
+
+● Q7: Should GOP (Goodness-of-Pronunciation) scoring be built as part of this 
+  harness pass, or come after?
+
+  Quick reminder what GOP is: instead of asking the model "which of 37 phonemes
+  is this?" (open classification — harder, and what LOSO measures), GOP asks a
+  narrower question: "the game already knows the target is /b/ — how well does
+  this specific attempt support /b/ specifically?" It's a scoring layer on top
+  of the same model output, not a different model.
+
+  Given what you just confirmed — the game always knows the target phoneme, it's
+  not open guessing — GOP genuinely fits your actual interaction model better
+  than raw top-1 classification does. That's a real point in favor of doing it
+  now.
+
+  My recommendation: still defer it, but architect the harness so it's not 
+  thrown away. Reasoning: this harness pass already has real, concrete scope —
+  CTC decoding fix, LOSO, the label-index check, the broken Wav2Vec2-CTC ONNX
+  export, split-manifest persistence, the live-mic smoke test. GOP adds its own
+  real work (per-phoneme threshold calibration, deciding what counts as "correct
+  enough," and you don't yet have human-judged correctness labels to calibrate
+  against — you have "which folder was this recorded under," which isn't the
+  same thing). Bundling it in risks the harness pass never actually finishing.
+  The concrete ask for this pass: make sure the LOSO evaluation code keeps the
+  raw per-frame CTC posteriors around (not just the final decoded label), since
+  GOP is computed from exactly that data — so adding it later is a follow-on
+  step, not a rebuild.
+
+  Does deferring GOP (while keeping the door open) work, or is it important
+  enough to the actual gameplay loop that you want it pulled into this same
+  pass?
+
+❯ Well, let me elaborate - most games will always know the target. There might  
+  be a few that don't know, but that will be very rare. I'm okay to focus on    
+  the ones that don't know for now. Only add it now if it will improve          
+  accuracy, but lets keep it open                                               
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ Sorry, I'm okay to focus on the ones that DO know                             
+
+● Good clarification — that actually changes the calculus a bit. Let me redo
+  this with "known-target is the dominant case" as the premise.
+
+  Since the game usually knows the target, raw 37-way top-1 accuracy (the LOSO
+  headline number) is actually a stricter test than what real gameplay needs — a
+  wrong top-1 guess could still mean the true target scored high enough to
+  reasonably "count," just not #1 overall. Measuring only top-1 could make the
+  model look worse than it'll actually feel in the game.
+
+  So here's the split I'd propose, matching your condition ("only add it now if
+  it improves accuracy, keep it open"):
+
+  Add now (cheap, ~free alongside LOSO): for every sample, since we already know
+  the true/intended phoneme, also log where that known target ranked among the
+  model's guesses and how big its confidence margin was vs. the top rival (e.g.,
+  target scored -0.3, best rival scored -1.2 → the model "knew" it was right
+  even if something else edged it out in an open 37-way vote). This costs almost
+  nothing to compute — it's the same posteriors the harness already produces,
+  just reported a second way — and it gives you a more honest read of "does this
+  work for the known-target game mode" alongside the stricter open-set number.
+
+  Still defer: turning that margin into an actual accept/reject decision (full
+  GOP) — that needs calibrated per-phoneme thresholds, which needs either
+  human-judged "was this correct" labels (you don't have those yet) or a lot of
+  manual tuning. That's real, separate work, not a rounding error.
+
+  So: LOSO top-1 stays the headline "is the pipeline trustworthy" number,
+  known-target margin becomes a second reported number this same pass (cheap,
+  informative, no calibration required), and full accept/reject GOP scoring
+  stays a later epic. Does that split match what you meant by "keep it open," or
+  did you want the actual accept/reject logic built now too?
+
+❯ That is good                                                                  
+
+● Marking Q7 resolved.
+● Q8: Should SpeechOcean762 (the free, phoneme-scored dataset with children in 
+  it) get wired into this pass, or deferred?
+
+  Reminder: it's free, includes children, already has phoneme-level correctness
+  scores — sounds like an easy win for the generalization problem (only 5
+  speakers, 1 in the target age band). But there's a catch: it's
+  non-native-English-speaker pronunciation data, recorded as full read
+  utterances, not isolated single phonemes trimmed to clean clips like your
+  dataset. Pulling it in isn't "drop in a folder" — it needs a label-scheme
+  mapping (their phone inventory → your 37 classes) and likely segmentation work
+  to extract isolated-phoneme-equivalent examples from continuous speech.
+  That's real, separate scope.
+
+  My recommendation: defer it, same reasoning as GOP — this pass is already
+  carrying real work (decode fix, LOSO, label-index check, the broken ONNX
+  export, split-manifest, live-mic smoke test, known-target margin metric).
+  Adding external-dataset integration risks the pass never landing. It also
+  belongs to a specific epic you already have named for exactly this — "Data
+  Enrichment & Noise Robustness" — which makes more sense to tackle after you
+  know whether your existing 5-speaker pipeline, honestly measured, is even in
+  the right ballpark or badly short. If Chloe's LOSO number comes back well
+  below the 85% bar, that's the trigger to bring in SpeechOcean762 — not before.
+
+  Same question as before: does deferring work, or is this one important enough
+  to pull forward?
+
+❯ No, we don't want it unless we can't get what we have working, but segmenting 
+  things can get real bad - we are taking data not meant for isolated phonemes  
+  and trying to force it (circle into a square problem)                         
+
+● That's a sharp, correct objection — forcing continuous non-native read-aloud
+  speech into isolated-phoneme boundaries via segmentation would introduce
+  exactly the kind of artifact noise that could make the "fix" worse than the
+  problem. Marking Q8 resolved: SpeechOcean762 stays off the table entirely 
+  unless the existing 5-speaker data proves genuinely insufficient, and I'll
+  document the segmentation-risk reasoning in the PRD so it doesn't get
+  re-litigated later without this context.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Write(PRD.md)
+  ⎿  Wrote 102 lines to PRD.md
+      1 # PRD: Evaluation Foundation — Making Model Accuracy Trustworthy
+      2 
+      3 **Status:** Draft — pending implementation
+      4 **Owner:** Daniel Hair
+      5 **Last updated:** 2026-07-10
+      7 > Per CLAUDE.md: this PRD must be kept in sync with actual status
+         as work progresses. Completion is declared by the user, not infe
+        rred from code existing.
+      8 
+      9 ## 1. Problem Statement
+     … +238 lines (ctrl+o to expand)
+
+● I wrote PRD.md at the repo root, synthesizing everything we resolved:
+  environment (Windows-native Poetry, pinned versions), the diagnostic-first
+  sequencing (label-index check, ONNX export bug), the CTC decoding fix
+  (greedy), the LOSO harness design (Sky/Cassie included normally, Chloe's score
+  as headline, split-manifest persistence, the cheap known-target-margin
+  metric), the 85% ship bar with the bug-floor/ship-bar distinction, and an
+  explicit non-decisions table (CVC, full GOP, SpeechOcean762, runtime) so those
+  don't get silently re-litigated later.
+
+  Nothing has been implemented yet — this is the plan document only. When you're
+  ready, next step would be setting up the Windows Poetry env and starting on
+  the diagnostics (label-index check + the 0-byte ONNX export) before touching
+  any evaluation code, per the PRD's sequencing. Let me know when you want to
+  move into implementation.
+
+❯ <ide_opened_file>The user opened the file                                     
+  c:\Workspace\phoneme-classifier\SETUP.md in the IDE. This may or may not be   
+  related to the current task.</ide_opened_file>                                
+
+❯ Oh also I saw @SETUP.md                                                       
+  ⎿  Read SETUP.md (71 lines)
+
+● That file's part of the same abandoned Conda-migration attempt as
+  setup_conda.sh/.ps1, and it's now stale — the PRD settled on Windows-native
+  Poetry, not Conda. It also lines up with something I haven't touched yet: your
+  working tree currently has uncommitted changes that gutted pyproject.toml's
+  Poetry dependency list and deleted poetry.lock entirely, in favor of the
+  Conda/pip approach.
+
+  Since we're going the other direction now, I'd suggest cleaning this up as
+  part of getting the environment ready:
+
+  1. Revert pyproject.toml and restore poetry.lock back to their last-committed
+  (Poetry-based) state — undoing the uncommitted Conda-migration edits.
+  2. Delete SETUP.md, setup_conda.sh, setup_conda.ps1 — they document a path
+  we're not taking, and leaving them around risks a future me (or you) following
+  them by mistake and burning another hour rediscovering what we just spent
+  this whole session sorting out.
+  3. Update README.md's setup section to just the Poetry steps (drop the
+  Conda/hybrid instructions), matching what's proven to work on the reference
+  machine.
+
+  Since this discards uncommitted work rather than just adding to it, I want to
+  confirm before touching it — want me to go ahead with all three, or is there
+  something in the Conda attempt worth preserving first (e.g., did it solve a
+  real Windows-compat problem Poetry alone won't)?
+
+❯ <ide_opened_file>The user opened the file                                     
+  c:\Workspace\phoneme-classifier\pyproject.toml in the IDE. This may or may    
+  not be related to the current task.</ide_opened_file>                         
+
+❯ Well instead of assuming this, we need to see which one will work first.      
+
+● Fair — let's actually test it rather than trust the other machine's result.
+  I'll do this non-destructively: stash the uncommitted Conda-migration edits
+  (so nothing is lost), test Poetry against the last-committed state, and only
+  decide what to keep based on what actually happens here.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● That's just a trivial whitespace diff on CLAUDE.md, not related. Proceeding
+  with the stash.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Config is valid (just Poetry 2.x deprecation warnings on the legacy
+  [tool.poetry] schema, not blockers). Now the real test — installing.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● poetry install is running in the background (it can take a while
+  resolving/downloading torch, transformers, and the rest) — I'll let you know
+  when it finishes or errors out. In the meantime, nothing else to do but wait
+  on this result before deciding whether to keep the Conda files or drop them.
+
+❯ <ide_opened_file>The user opened the file \Preview: b2fpldmlz.output in the   
+  IDE. This may or may not be related to the current task.</ide_opened_file>    
+
+❯ It might be done?                                                             
+
+● Task Output b2fpldmlz  ⎿  Creating virtualenv phoneme-classifier-7xrv5cu7-py3.13 in C:\Users\dan
+     ie\AppData\Local\pypoetry\Cache\virtualenvs
+     Installing dependencies from lock file
+     … +1495 lines (ctrl+o to expand)
+
+● Background command "Attempt full poetry install against the committed
+pyproject.toml/poetry.lock" failed with exit code 1
+
+● That resolves it — and it's a real, reproducible failure, not a false alarm.
+  Good call not assuming Poetry would just work.
+
+  Root cause: poetry install tried to build numpy 1.26.4 from source because it
+  resolved to Python 3.13.5 (no prebuilt numpy 1.26.4 wheel exists for 3.13 —
+  that version predates 3.13 support), and building from source needs a C/C++
+  compiler (MSVC) that isn't installed here (vswhere.exe/cl/gcc/clang all not
+  found). This is very likely the exact "Windows compatibility" pain that
+  originally justified the Conda migration.
+
+  The fix is narrower than it looks, though: Poetry's own config already knows
+  about a Python 3.9.13 install at
+  C:\Users\danie\AppData\Local\Programs\Python\Python39 (matching the reference
+  machine's working version, which does have prebuilt numpy wheels) — it just
+  didn't use it for this venv. Let me pin it explicitly and retry before
+  concluding Poetry is a dead end.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+❯ Don't assume it means to drop it though                                       
+
+❯ We need to run the tools to ensure things are working                         
+
+● Good flags — noted on both: I won't declare Poetry the winner just because one
+  bug got fixed, and once something installs I'll actually exercise it (run a
+  real poe command, not just check imports) before calling it working. Retrying
+  the install now with the pinned Python 3.9 interpreter.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Confirmed on 3.9.13 now. Re-running install.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Install running in the background again (torch/transformers downloads take a
+  while). I'll report back with the result and, if it succeeds, run real poe
+  commands against it before concluding anything — not just checking that
+  imports work.
+
+● Background command "Reinstall all dependencies with the venv correctly pinned
+to Python 3.9.13" failed with exit code 1
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Another real, different Windows-compat bug — good thing we're actually testing
+  this. Numpy's fixed now (it installed cleanly this time), but poetry install
+  is now failing on triton, a PyTorch dependency used for GPU kernel compilation
+  that doesn't ship Windows wheels at all — it's Linux-only. The lockfile
+  apparently doesn't have a platform marker correctly excluding Windows for it,
+  so Poetry tries to install something that structurally can't exist here.
+
+  Poetry's own suggested fix is to regenerate the lockfile natively on this
+  machine, so the resolver re-evaluates platform markers for this Python/OS
+  rather than trusting whatever machine originally produced poetry.lock. Trying
+  that next — this re-resolves the whole dependency tree, so it may take a bit
+  and could shift some non-pinned versions, but it's reversible (we still have
+  the original stashed).
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Regenerating in the background — I'll report back once it resolves (or fails).
+
+● Background command "Regenerate poetry.lock natively on this Windows machine to
+fix platform-marker resolution for triton" completed (exit code 0)
+
+● Lock regeneration succeeded. Retrying the install with the new lockfile.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Running in the background — will report back with the result.
+
+● Background command "Install dependencies using the freshly regenerated
+Windows-native lockfile" failed with exit code 1
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● That's a different failure again — greenlet needs MSVC Build Tools to compile
+  from source, and it's not installed. But before treating this as another
+  Poetry-vs-Conda point, let me check where greenlet is even coming from — it
+  smells like a transitive dependency of something we don't actually need for
+  this work.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Found it — montreal-forced-aligner is in the dependency list, and it's the
+  most likely source of greenlet (MFA uses SQLAlchemy internally, which pulls in
+  greenlet on Windows). Along with fastapi/uvicorn (confirmed dead — the
+  FastAPI server was abandoned), phonemizer, praat-parselmouth, and pronouncing,
+  these are all forced-alignment/GOP or dead-server tooling — exactly the stuff
+  the PRD already deferred. Let me confirm nothing currently-active actually
+  imports them before trimming.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Confirmed — nothing in workflows/, inference/, evaluation/, or tests/ imports
+  any of those. Safe to remove.
+
+  I'd like to trim pyproject.toml to drop montreal-forced-aligner,
+  praat-parselmouth, phonemizer, pronouncing, fastapi, uvicorn, and
+  python-multipart — all either confirmed-dead (FastAPI server) or scoped to
+  work the PRD explicitly deferred (forced-alignment/GOP, which is what
+  MFA/phonemizer/praat-parselmouth are for). This isn't a Poetry-vs-Conda
+  concession — a bloated dependency list pulling in a Kaldi-based forced aligner
+  would cause pain either way. It just happens to also very likely fix the
+  greenlet build failure, since MFA's SQLAlchemy usage is the most likely source
+  of that transitive dependency.
+
+  Want me to make that edit and retry, or would you rather install MSVC Build
+  Tools and keep the full dependency list intact (in case forced-alignment work
+  gets pulled forward sooner than planned)?
+
+❯ <ide_opened_file>The user opened the file \Preview: bqt3yrjbw.output in the   
+  IDE. This may or may not be related to the current task.</ide_opened_file>    
+
+❯ Its okay to remove - we will see if it fixes it and if the commands all work  
+  after.                                                                        
+
+  Read 1 file (ctrl+o to expand)
+● Update(pyproject.toml)
+  ⎿  Removed 11 lines
+      38  onnx = "^1.15.0"
+      39  onnxruntime = "^1.16.0"
+      40  
+      41 -# Web API                                                      
+      42 -fastapi = "^0.104.0"                                           
+      43 -uvicorn = "^0.24.0"                                            
+      44 -python-multipart = "^0.0.6"                                    
+      45 -                                                               
+      46 -# Speech Processing & Alignment                                
+      47 -phonemizer = "^3.2.0"                                          
+      48 -montreal-forced-aligner = "^3.1.0"                             
+      49 -praat-parselmouth = "^0.4.0"                                   
+      50 -                                                               
+      41  # Utilities
+      42  protobuf = "^4.25.0"
+      43  openai-whisper = "^20231117"
+      54 -pronouncing = "^0.2.0"                                         
+      44  
+      45  [tool.poetry.group.dev.dependencies]
+      46  poethepoet = "^0.18.0"
+
+● Now regenerating the lock again to reflect the trimmed dependencies, then
+  reinstalling.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Running in the background — will report back.
+
+● Background command "Regenerate poetry.lock with the trimmed dependency set"
+completed (exit code 0)
+
+● Lock regeneration succeeded. Now the real install.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Running in the background — will report the result.
+
+● Background command "Install dependencies with the trimmed lockfile" failed
+with exit code 1
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● Found the real culprit — it's not torch, it's openai-whisper, which declares
+  triton >= 2.0.0, <3 as a hard dependency with no platform marker at all
+  (torch's own triton dependency is correctly marked Linux-only, but
+  openai-whisper's isn't — this is a known packaging issue with that library on
+  Windows). And per the earlier grep, openai-whisper is also unused by any
+  current code — it's scoped to the deferred "Whisper Teacher & Distillation"
+  epic, same category as what we already removed. Removing it under the same
+  reasoning you approved.
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(pyproject.toml)
+  ⎿  Removed 1 line
+      40  
+      41  # Utilities
+      42  protobuf = "^4.25.0"
+      43 -openai-whisper = "^20231117"                                   
+      43  
+      44  [tool.poetry.group.dev.dependencies]
+      45  poethepoet = "^0.18.0"
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Running in the background — will report back.
+
+● Background command "Regenerate lockfile without openai-whisper" completed
+(exit code 0)
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Both remaining triton entries are correctly marked platform_system == "Linux"
+  now — no more unmarked entry from openai-whisper. Retrying the install.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Running in the background — will report back.
+
+● Background command "Install dependencies with the cleaned-up lockfile" failed
+with exit code 1
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● We're much further now — that particular resolver problem is fixed, but we've
+  hit a fourth issue: the resolver picked torchaudio 2.11.0, which has no
+  Windows wheels for this Python version. Given loose version ranges keep
+  letting the resolver wander into broken combinations, let me just pin
+  torch/torchaudio/transformers/onnxruntime/scikit-learn to the exact versions
+  confirmed working on the reference machine, instead of letting it guess again.
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(pyproject.toml)
+  ⎿  Added 4 lines, removed 4 lines
+      10  python = "^3.9"
+      11  
+      12  # Core ML/DL Framework
+      13 -torch = ">=2.0.0"                                              
+      13 +torch = "2.3.1"                                                
+      14  transformers = {extras = ["torch"], version = "4.50.3"}
+      15  accelerate = ">=0.26.0"
+      16  
+     ...
+      21  resampy = "^0.4.0"
+      22  pydub = "^0.25.0"
+      23  audiomentations = "*"
+      24 -torchaudio = "^2.0.0"                                          
+      24 +torchaudio = "2.3.1"                                           
+      25  
+      26  # Data Science
+      27  pandas = "^2.0.0"
+      28  numpy = "^1.24.0"
+      29 -scikit-learn = "^1.3.0"                                        
+      29 +scikit-learn = "1.6.1"                                         
+      30  datasets = {extras = ["audio"], version = "^2.14.0"}
+      31  
+      32  # Visualization
+     ...
+      36  
+      37  # Model Deployment
+      38  onnx = "^1.15.0"
+      39 -onnxruntime = "^1.16.0"                                        
+      39 +onnxruntime = "1.20.1"                                         
+      40  
+      41  # Utilities
+      42  protobuf = "^4.25.0"
+
+  Ran 1 shell command (ctrl+o to expand)
+● Running in the background — will report back.
+
+● Background command "Regenerate lockfile with exact-pinned versions matching
+the reference machine" completed (exit code 0)
+
+● Lock regeneration succeeded. Retrying the install.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Running in the background — will report back.
+
+● Background command "Install dependencies with exact-pinned versions" failed
+with exit code 1
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● That's odd, since the reference machine confirmed onnxruntime 1.20.1 works
+  there on the same Python 3.9.13. Let me check whether the venv drifted again
+  before assuming it's a real wheel-availability gap.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● That explains the earlier mystery — onnxruntime 1.20.1 only ships wheels for
+  Python 3.10+ on Windows. This means it was never actually installed on the 
+  reference machine either — that's exactly why import onnxruntime failed there
+  too (back when we checked poetry show vs actual imports). It was declared in
+  the lockfile but never functional. Let me find the newest version that still
+  supports Python 3.9.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● onnxruntime 1.19.2 is the newest version that still supports Python 3.9 on
+  Windows. Pinning to that instead.
+
+● Update(pyproject.toml)
+  ⎿  Added 1 line, removed 1 line
+      36  
+      37  # Model Deployment
+      38  onnx = "^1.15.0"
+      39 -onnxruntime = "1.20.1"                                         
+      39 +onnxruntime = "1.19.2"                                         
+      40  
+      41  # Utilities
+      42  protobuf = "^4.25.0"
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Running in the background — will report back.
+
+● Background command "Regenerate lockfile with onnxruntime pinned to a
+Python-3.9-compatible version" completed (exit code 0)
+
+● Lock regenerated. Retrying install.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Running in the background — will report back.
+
+● Background command "Install dependencies with the Python-3.9-compatible
+onnxruntime version" completed (exit code 0)
+
+● Install succeeded. Now let's actually verify it works, not just that it
+  installed — running real imports and poe commands.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Same silent-failure pattern as before — likely a Git Bash multi-line quoting
+  issue, not a real problem. Let me use a script file instead.
+
+  Made 1 scratchpad edit +11, ran 1 shell command (ctrl+o to expand)
+
+● All core imports work. Now let's run actual poe commands, per your instruction
+  to verify the tools work, not just the imports.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● A real, distinct bug — not a dependency problem this time. poe info's task
+  output contains an emoji (🎯), and Windows' default console codepage (cp1252)
+  can't encode it, crashing the print. This will hit every poe task with emoji
+  in its output — this whole project's tooling is emoji-heavy. Let me confirm
+  the fix (forcing UTF-8 I/O) before treating it as solved.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● That fixes it completely. Let's run a couple more substantive checks — one
+  that lists everything, and one that actually touches project code rather than
+  just printing text.
+
+  Ran 1 shell command (ctrl+o to expand)
+● Now something that actually loads project code, not just prints text.
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● Environment is now fully verified end-to-end: dependencies install cleanly,
+  all core imports work, poe task commands run, and poe debug-shared confirms
+  actual project code (workflows.shared.s0_s1_shared_utils) imports successfully
+  (exit code 0).
+
+  Summary of what actually made it work, concretely:
+  - Pinned Python to 3.9.13 explicitly (was drifting to system Python 3.13,
+  which has no numpy 1.26.4 wheel).
+  - Removed unused/deferred dependencies from pyproject.toml:
+  montreal-forced-aligner, praat-parselmouth, phonemizer, pronouncing, fastapi,
+  uvicorn, python-multipart, openai-whisper — all confirmed unused by any active
+  code, all scoped to work the PRD already deferred (forced-alignment/GOP,
+  Whisper distillation) or dead (FastAPI server).
+  - Pinned exact versions: torch==2.3.1, torchaudio==2.3.1, scikit-learn==1.6.1
+  (matching the reference machine), and onnxruntime==1.19.2 — not 1.20.1 as the
+  reference machine's lockfile claimed. Turns out onnxruntime 1.20.1 never
+  published a Python-3.9 Windows wheel at all, which is exactly why import 
+  onnxruntime failed on the reference machine too, a few turns back. That was
+  never actually working there either — just declared.
+  - Requires PYTHONUTF8=1 when running poe commands — the task definitions print
+  emoji, and Windows' default console codepage (cp1252) can't encode them,
+  crashing every emoji-containing task otherwise. This isn't a dependency
+  problem, it's a Windows console-encoding gap in the tooling itself.
+
+  Given this actually works now — imports, poe, and real project code all
+  verified — do you want me to go ahead and formally commit to this (drop the
+  stashed Conda-migration edits, delete SETUP.md/setup_conda.sh/.ps1, update
+  README.md's setup section, and note the PYTHONUTF8=1 requirement there), or
+  hold off a bit longer before closing the door on Conda?
+
+❯ <ide_opened_file>The user opened the file \temp\readonly\Bash tool output     
+  (ch8s4e) in the IDE. This may or may not be related to the current            
+  task.</ide_opened_file>                                                       
+
+❯ Is 3.9 required for us or can we move to the more latest python versions?     
+
+● Good question — and given how much of this session has been "don't assume,
+  verify," let me check rather than guess.
+
+  Is 3.9 actually required? No. It was never a hard pin — pyproject.toml
+  declares python = "^3.9" (a floor, not a ceiling), and we ended up testing
+  against 3.9.13 specifically only because that's what happened to be installed
+  and what the reference machine used. There's no code in this repo that needs
+  3.9-specific behavior.
+
+  Should we move off it? Python 3.9's upstream security support ended in October
+  2025 — it's already past end-of-life as of now. And we just watched this
+  firsthand: onnxruntime dropped 3.9 support at 1.20.1, forcing us onto an older
+  1.19.2. That's not a one-time fluke — more packages will keep dropping 3.9
+  over time, meaning staying on it locks us into progressively older dependency
+  versions indefinitely.
+
+  Let me verify a newer version wouldn't just trade one wheel-availability
+  problem for another before recommending it.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● All four key packages have proper wheels for both — so upgrading wouldn't
+  trade one wheel problem for another, and it would let us use the original 
+  onnxruntime 1.20.1 pin instead of the 1.19.2 workaround.
+
+  Recommendation: move to Python 3.12. It's mature (released Oct 2023, well past
+  initial-release rough edges), has a long support runway ahead of it, and
+  every package we depend on already ships proper wheels for it. I'd avoid 3.13
+  for now — that's the version that broke numpy 1.26.4 earlier in this session,
+  so it's the more bleeding-edge choice with less confirmed compatibility.
+
+  One thing to flag honestly: switching means redoing the install from scratch
+  again (new venv, re-lock, re-verify) — not a big deal given we now know the
+  process, but it's not free. Given we just got 3.9 fully verified working
+  end-to-end, want me to go ahead and switch to 3.12 now (before we build
+  anything on top of this environment), or lock in what's currently verified and
+  treat the Python upgrade as a tracked follow-up instead?
+
+❯ My goal is for us to get the latest versions of each python package on the    
+  latest python version that we can.                                            
+
+● That's a bigger ask than pinning to the reference machine's versions — it
+  means letting go of those pins and finding the newest Python + newest
+  mutually-compatible package versions, which could also surface real
+  API-compatibility issues in the code (not just installation issues). Let me
+  find the actual ceiling before touching anything.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● That's a much bigger jump than I expected — latest torch is 2.13.0, ten minor
+  versions ahead of the 2.3.1 we just got working, and it requires Python 3.10+
+  (Windows wheels for cp39 stopped around 2.8.0). That's not a routine bump —
+  PyTorch has had real API changes across that span (ONNX export internals,
+  compile/dynamo behavior, deprecated-function removals), so "install the
+  latest" and "the actual training/CTC code still runs correctly" are two
+  different questions. Getting the second one right could mean real debugging in
+  workflows/ code, not just environment plumbing.
+
+  Given the PRD's actual goal is fixing the evaluation harness, not modernizing
+  the dependency stack, I want to check how far you want to push this before I
+  commit to a path:
+
+● User answered Claude's questions:
+  ⎿  · How aggressive should the Python/package upgrade be, given the latest 
+     torch (2.13.0) is 10 minor versions ahead of the verified-working 2.3.1 and
+     may need real code fixes, not just environment changes? → Keep what's 
+     verified working now
+
+● Good, that keeps this pass focused. I'll track the Python/dependency
+  modernization as a deferred item in the PRD, same pattern as the other
+  non-goals.
+
+  Read 1 file (ctrl+o to expand)
+
+● Now updating section 4 with the actual verified state and adding the deferred
+  upgrade item.
+
+● Update(PRD.md)
+  ⎿  User rejected update to PRD.md
+
+❯ But real question is that will these updates give us better, faster, more     
+  accurate results?                                                             
+
+● Good gut-check question — let me actually answer it rather than assume "newer
+  is better."
+
+  Accuracy: no. Model accuracy is governed by the CTC decoding fix, correct
+  evaluation methodology (LOSO, no leakage), data quality, and training
+  procedure. None of that depends on package versions. A newer
+  torch/transformers runs the exact same math on the exact same data and
+  produces essentially the same trained model — this is actually worth stating
+  plainly because it reinforces the whole premise of this PRD: the accuracy 
+  problems we're chasing are measurement/methodology bugs, not "our software is 
+  out of date." Upgrading packages wouldn't touch any of them.
+
+  Speed: marginal, and not where it matters. Newer torch/onnxruntime do get
+  incremental CPU inference optimizations over time, but the product's actual
+  runtime is the exported ONNX graph running through onnxruntime, not raw torch
+  — and the research earlier in this conversation already estimated that's
+  comfortably within the ~150ms latency budget on the current stack (WavLM-Base+
+  CPU inference, 100-300ms range). There's no live latency problem being solved
+  by upgrading. Newer Python's interpreter is faster too, but the actual hot
+  path here (Wav2Vec2/WavLM tensor ops) runs in compiled code, not Python — so
+  that speedup mostly wouldn't reach the parts that are slow.
+
+  What upgrading actually buys you: future maintenance, not better results now.
+  The real argument is "avoid getting stuck on EOL Python as more packages drop
+  support for it" (what onnxruntime already did) — a sustainability concern, not
+  a performance or accuracy one.
+
+  So: no, this wouldn't make results better or faster for this pass. That
+  confirms your earlier call was right for the right reason, not just "let's not
+  risk it" — there's no upside being left on the table by staying on the
+  verified Python 3.9.13 / torch 2.3.1 stack right now. Want me to go ahead and
+  document that reasoning in the PRD, or hold off on touching the PRD further
+  for now?

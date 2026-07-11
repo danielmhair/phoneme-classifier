@@ -19,7 +19,7 @@ import os
 
 # Try to import dependencies with fallback
 try:
-    from transformers import Wav2Vec2Processor, WavLMModel
+    from transformers import Wav2Vec2FeatureExtractor, WavLMModel
     import torch
     import soundfile as sf
     DEPENDENCIES_AVAILABLE = True
@@ -90,9 +90,19 @@ def extract_temporal_embeddings(
     meta = pd.read_csv(metadata_csv)
     print(f"📊 Loaded metadata with {len(meta)} rows")
     
-    # Load WavLM processor and model
+    # Load WavLM processor and model.
+    # Wav2Vec2FeatureExtractor, not Wav2Vec2Processor: only audio feature
+    # extraction is ever used here (no text tokenization/decoding), and
+    # microsoft/wavlm-base has no tokenizer config at all - Wav2Vec2Processor
+    # (which requires one) fails to load for it with an OSError. This step
+    # has no try/except of its own, so that error would have propagated up
+    # to workflow_executor.py's blanket catch-and-continue - the workflow
+    # would print a failure and move on to later steps, which then no-op
+    # (phoneme_embeddings_temporal/ never got created) rather than crash
+    # loudly. A plausible real contributor to the near-random (2.78%)
+    # reported WavLM-CTC accuracy: if this ran, there was no trained model.
     print("🧠 Loading WavLM model...")
-    processor = Wav2Vec2Processor.from_pretrained("microsoft/wavlm-base")
+    processor = Wav2Vec2FeatureExtractor.from_pretrained("microsoft/wavlm-base")
     model = WavLMModel.from_pretrained("microsoft/wavlm-base").eval()
     
     # Get phoneme directories and create label mapping

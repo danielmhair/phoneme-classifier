@@ -6,11 +6,15 @@ Tests the exported CTC ONNX model functionality.
 Adapted from MLP ONNX testing for CTC workflow.
 """
 
+import sys
 import numpy as np
 import pandas as pd
 import json
 import onnxruntime as ort
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from workflows.shared.ctc_decode import ctc_predict
 
 
 def test_ctc_onnx_model(
@@ -102,19 +106,15 @@ def test_ctc_onnx_model(
                 # Run ONNX inference
                 result = session.run(None, {input_info.name: input_data})
                 log_probs = result[0]  # Shape: (1, seq_len, num_classes)
-                
-                # Greedy decoding (take argmax at each timestep)
-                predictions_seq = np.argmax(log_probs[0], axis=1)  # Shape: (seq_len,)
-                
-                # Simple decoding: take first non-blank prediction
-                predicted_class = None
+
+                # Greedy CTC decode (collapse repeats, drop blank) - see
+                # workflows/shared/ctc_decode.py. Replaces the old "take the
+                # first non-blank timestep" heuristic, which is not a real
+                # CTC decode (arbitrary early-frame bias, ignores the rest of
+                # the sequence entirely).
                 blank_token_id = model_metadata.get('blank_token_id', len(phoneme_labels))
-                
-                for pred in predictions_seq:
-                    if pred != blank_token_id and pred < len(phoneme_labels):
-                        predicted_class = pred
-                        break
-                
+                predicted_class, _, _ = ctc_predict(log_probs[0], blank_id=blank_token_id)
+
                 if predicted_class is not None:
                     # Get true label
                     true_phoneme = row["phoneme"]
