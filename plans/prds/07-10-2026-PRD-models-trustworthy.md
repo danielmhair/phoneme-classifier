@@ -50,7 +50,16 @@ Live-mic smoke test (§5.4) - in progress (2026-07-12), tooling landed, fresh-cl
   | WavLM CTC | 65.77% | 60.50% | ~100% | 83.78% |
 
   Honest read: **the historical 82%→18% collapse did NOT recur** - live-mic scores are consistent with (slightly above) LOSO levels, so the evaluation pipeline and the LOSO numbers describe reality. But note what that means: these full-corpus models were *trained on 1,276 of this speaker's own clips*, yet a fresh session only scores at roughly the level of a never-heard speaker - i.e. **session/recording-conditions shift costs approximately the entire benefit of being a known speaker**. This independently supports both the augmentation lever (robustness to conditions) and the more-target-age-data conclusion. WavLM-CTC is the clear live-mic winner (65.77% top-1, 83.78% top-3). Consistent live failure classes across models: dh (always scored as th), n/m nasal confusion, and MLP is far weaker live than the CTC models (16 phonemes at 0/3).
-- Remaining for §5.4: bad-mic comparison session (same protocol, product-realistic mic); user judgment on whether the tripwire is satisfied.
+- **Bad-mic comparison session recorded and scored (2026-07-12, same protocol, 111 clips)** - session `dan_badmic_20260712_155952`:
+
+  | Model | Good mic top-1 | Bad mic top-1 | Mic cost | Good mic top-3 | Bad mic top-3 |
+  |---|---|---|---|---|---|
+  | MLP Control | 36.94% | 16.22% | -20.7 | 63.96% | 45.05% |
+  | Wav2Vec2 CTC | 56.76% | 32.43% | -24.3 | 77.48% | 57.66% |
+  | WavLM CTC | 65.77% | 44.14% | -21.6 | 83.78% | 70.27% |
+
+  Honest read: **mic quality alone costs ~21-24 points of top-1 on every model.** Notably, MLP on a consumer mic scores 16.2% - nearly identical to the historical "82% test -> 18% real-world" collapse number, which suggests that historical collapse was substantially a recording-conditions/channel effect on the MLP pipeline, now reproduced and quantified under honest measurement. The existing augmentation transforms (speed/pitch/noise overlay) do not simulate channel/mic effects (bandwidth, EQ, compression) - channel augmentation is a concrete, newly-motivated lever alongside more target-age data. WavLM-CTC degrades the least in relative terms and stays the best model under both conditions.
+- §5.4's originally-scoped work (extend live-mic validation to CTC models, verify the pooling question, record a fresh tripwire set) is now all done pending user review; user judgment on whether the tripwire outcome is satisfactory, and completion declaration, are Daniel's.
 
 ### Augmented Chloe-fold pilot (2026-07-11)
 
