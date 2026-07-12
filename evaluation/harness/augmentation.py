@@ -32,6 +32,7 @@ import pandas as pd
 import soundfile as sf
 from pydub import AudioSegment
 
+from evaluation.harness.embeddings_cache import atomic_write_text
 from workflows.shared.s0b_augment_audio import change_pitch, change_speed, overlay_noise
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -78,10 +79,10 @@ def build_augmented_manifest(
         index[row.file_id] = [str(p) for p in variant_paths]
 
         if i % progress_every == 0:
-            index_path.write_text(json.dumps(index, indent=2))
+            atomic_write_text(index_path, json.dumps(index, indent=2))
 
     if to_process:
-        index_path.write_text(json.dumps(index, indent=2))
+        atomic_write_text(index_path, json.dumps(index, indent=2))
 
     rows = []
     for row in manifest.itertuples():

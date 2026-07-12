@@ -17,6 +17,7 @@ harness caches deterministic embeddings so every fold sees the same features
 for a given file.
 """
 import json
+import os
 from pathlib import Path
 from typing import Dict, Literal
 
@@ -26,6 +27,15 @@ import soundfile as sf
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CACHE_DIR = REPO_ROOT / "evaluation" / "harness_cache"
+
+
+def atomic_write_text(path: Path, text: str) -> None:
+    """Write via temp file + os.replace so a process kill mid-write can't
+    leave a truncated/null-byte file (observed on NTFS: a kill during a
+    plain write_text left index.json as 4.4MB of zeros, breaking resume)."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text)
+    os.replace(tmp, path)
 
 BaseModel = Literal["wav2vec2", "wavlm"]
 
@@ -109,9 +119,9 @@ def extract_embeddings(
 
         # Persist incrementally so an interrupted run doesn't lose progress.
         if i % progress_every == 0:
-            index_path.write_text(json.dumps(index, indent=2))
+            atomic_write_text(index_path, json.dumps(index, indent=2))
 
-    index_path.write_text(json.dumps(index, indent=2))
+    atomic_write_text(index_path, json.dumps(index, indent=2))
 
     missing = [fid for fid in manifest["file_id"] if fid not in index]
     if missing:

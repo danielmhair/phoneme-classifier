@@ -1,8 +1,8 @@
 # PRD: Evaluation Foundation — Making Model Accuracy Trustworthy
 
-**Status:** In progress - implementation underway, full LOSO run in flight, results not yet reviewed
+**Status:** In progress - full no-augmentation LOSO baseline done; augmented Chloe-fold pilot done, awaiting user decision on full 5-fold augmented rerun
 **Owner:** Daniel Hair
-**Last updated:** 2026-07-10
+**Last updated:** 2026-07-11
 **Source Context**: [Grill Me Session](./07-10-2026-PRD-models-trustworthy-grill-me)
 
 > Per CLAUDE.md: this PRD must be kept in sync with actual status as work progresses. Completion is declared by the user, not inferred from code existing.
@@ -39,7 +39,23 @@ Known-target metric (chloe, top-3 = true phoneme ranked in model's top 3 guesses
 
 Not yet started: live-mic smoke test (§5.4).
 
-**Open item for user decision, not yet acted on**: the no-augmentation scope call above (line 23) is a plausible lever to revisit now that no model met the ship bar, before concluding more data collection is required.
+### Augmented Chloe-fold pilot (2026-07-11)
+
+The no-augmentation scope call above was revisited with the user: an augmented pilot on the Chloe fold only was approved and run before paying for a full 5-fold augmented rerun. Same harness, same held-out set (all 1,145 chloe files), training set = 4 other speakers' 4,888 originals + 25,364 production-style augmented variants (speed 0.9x/1.1x, pitch ±2 semitones, stochastic noise overlay - the `s0b_augment_audio.py` transforms, seeded per-file for determinism). `ctc_epochs=8` instead of the baseline's 20, deliberately: the augmented training set is ~6x larger, so total gradient updates stay comparable. Results in `evaluation/loso_results/augmented_chloe_pilot/`.
+
+| Model | Chloe top-1 (baseline, no aug) | Chloe top-1 (augmented) | Delta | Chloe top-3 known-target (baseline → augmented) |
+|---|---|---|---|---|
+| MLP Control | 45.07% | **53.89%** | **+8.82** | 70.13% → 78.52% |
+| Wav2Vec2 CTC | 58.69% | **60.44%** | +1.75 | 77.82% → 82.45% |
+| WavLM CTC | 57.90% | **61.22%** | +3.32 | 80.96% → 85.33% |
+
+No fold near the bug floor; no model meets the 85% ship bar. Honest read: augmentation genuinely helps every model, but the gain is largest where it matters least (MLP, the weakest model, +8.8) and modest on the two CTC models (+1.75 / +3.32). The best available Chloe number moved 58.69% → 61.22% - real progress, still ~24 points short of the ship bar. Augmentation alone does not close the target-age generalization gap; §6's "needs more target-age-band data" conclusion stands. Top-3 known-target improved across the board (WavLM-CTC now 85.33%), which keeps the known-target gameplay mode looking materially more viable than open 37-way top-1.
+
+**Open for user decision**: whether to run the full 5-fold augmented rerun (MLP's +8.8 crossed the agreed ~+5 "material" threshold, the CTC models did not; the pilot's per-model deltas may not replicate on other folds). Proposed, not started.
+
+Data/infrastructure notes from the pilot (secondary machine, `c:\Workspace\fast-api-phoneme-python`):
+- This machine's copy of `recordings/` predated two fixes from the primary machine and was brought up to parity before the run: the 192 stale speaker-prefix filenames (159 chloe + 33 callie) were renamed to match their speaker directory (user-approved, same fix as the primary), and 54 zero-byte wavs (truncated in the original copy; concentrated in ai_eɪ/b/ch/f/sh/th across all 5 speakers) were re-copied from the primary machine by the user. Full corpus then verified: 6,033 files, all readable, all 16kHz, zero prefix mismatches.
+- A mid-run process kill left `harness_cache/wav2vec2/index.json` as 4.4MB of NTFS null bytes, breaking resume. The index was rebuilt from the on-disk `.npy` files (all 21,012 header-validated, zero corrupt), and cache-index writes in `evaluation/harness/embeddings_cache.py` + `augmentation.py` are now atomic (temp file + `os.replace`) so a kill can no longer corrupt them.
 
 ## 1. Problem Statement
 
