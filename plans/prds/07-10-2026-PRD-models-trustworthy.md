@@ -1,8 +1,8 @@
 # PRD: Evaluation Foundation — Making Model Accuracy Trustworthy
 
-**Status:** In progress - full no-augmentation LOSO baseline done; augmented Chloe-fold pilot done, awaiting user decision on full 5-fold augmented rerun
+**Status:** Core deliverables COMPLETE - declared by Daniel 2026-07-12: the "harness done" bar (§6) and the live-mic smoke test (§5.4) are met. The 85% ship bar on Chloe is NOT met by any model (best honest number: WavLM-CTC 57.90% LOSO / 65.77% live good-mic) - per §6, the conclusion is "needs more target-age-band data," now being pursued via the data-collection game epic. Follow-up lever in flight separately: channel-augmentation experiment (see plans/channel-augmentation-experiment.md).
 **Owner:** Daniel Hair
-**Last updated:** 2026-07-11
+**Last updated:** 2026-07-12
 **Source Context**: [Grill Me Session](./07-10-2026-PRD-models-trustworthy-grill-me)
 
 > Per CLAUDE.md: this PRD must be kept in sync with actual status as work progresses. Completion is declared by the user, not inferred from code existing.
