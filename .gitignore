@@ -27,6 +27,7 @@ evaluation/loso_results/
 # Full-corpus models + recorded live-mic sessions (regenerable via
 # `poe live-mic-train`; sessions are personal audio, like recordings/)
 evaluation/full_models/
+evaluation/full_models_channel_aug/
 evaluation/live_mic_sessions/
 
 # Windows Zone.Identifier files

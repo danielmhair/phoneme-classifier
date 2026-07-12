@@ -25,6 +25,8 @@ import pickle
 import time
 from pathlib import Path
 
+import pandas as pd
+
 from evaluation.harness.dataset import build_manifest, canonical_phoneme_labels
 from evaluation.harness.embeddings_cache import extract_embeddings
 from evaluation.harness.models import MODEL_BASE_EMBEDDING, build_model
@@ -34,7 +36,8 @@ DEFAULT_OUT_DIR = REPO_ROOT / "evaluation" / "full_models"
 ALL_MODEL_TYPES = ["mlp_control", "wav2vec2_ctc", "wavlm_ctc"]
 
 
-def train_full_models(model_types=ALL_MODEL_TYPES, ctc_epochs: int = 20, out_dir: Path = DEFAULT_OUT_DIR):
+def train_full_models(model_types=ALL_MODEL_TYPES, ctc_epochs: int = 20, out_dir: Path = DEFAULT_OUT_DIR,
+                      channel_aug: bool = False):
     import torch
 
     manifest = build_manifest()
@@ -48,14 +51,26 @@ def train_full_models(model_types=ALL_MODEL_TYPES, ctc_epochs: int = 20, out_dir
     base_models_needed = sorted({MODEL_BASE_EMBEDDING[m] for m in model_types})
     embedding_indices = {bm: extract_embeddings(manifest, bm) for bm in base_models_needed}
 
-    print(f"=== Full-corpus training: {len(manifest)} files, "
-          f"{len(canonical_labels)} classes, models={model_types}, ctc_epochs={ctc_epochs} ===")
+    train_manifest = manifest
+    if channel_aug:
+        from evaluation.harness.channel_augmentation import build_channel_augmented_manifest
+
+        channel_manifest = build_channel_augmented_manifest(manifest)
+        print(f"Channel-augmented manifest: {len(channel_manifest)} synthetic training rows")
+        for bm in base_models_needed:
+            aug_index = extract_embeddings(channel_manifest, bm)
+            embedding_indices[bm].update(aug_index)
+        train_manifest = pd.concat([manifest, channel_manifest], ignore_index=True)
+
+    print(f"=== Full-corpus training: {len(train_manifest)} files "
+          f"({len(manifest)} original), {len(canonical_labels)} classes, "
+          f"models={model_types}, ctc_epochs={ctc_epochs}, channel_aug={channel_aug} ===")
 
     for model_type in model_types:
         start = time.time()
         print(f"\n--- Training {model_type} on full corpus ---")
         model = build_model(model_type, canonical_labels, ctc_epochs=ctc_epochs)
-        model.fit(manifest, embedding_indices[MODEL_BASE_EMBEDDING[model_type]])
+        model.fit(train_manifest, embedding_indices[MODEL_BASE_EMBEDDING[model_type]])
 
         if model_type == "mlp_control":
             out_path = out_dir / "mlp_control.pkl"
@@ -71,13 +86,14 @@ def train_full_models(model_types=ALL_MODEL_TYPES, ctc_epochs: int = 20, out_dir
 
     training_info = {
         "trained_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "num_files": len(manifest),
+        "num_training_files": len(train_manifest),
+        "num_original_files": len(manifest),
         "speakers": sorted(manifest["speaker"].unique().tolist()),
         "num_classes": len(canonical_labels),
         "ctc_epochs": ctc_epochs,
-        "augmentation": False,
-        "note": "Full-corpus (non-LOSO) models for the live-mic smoke test; "
-                "comparable to the no-augmentation LOSO baseline settings.",
+        "augmentation": "channel" if channel_aug else False,
+        "note": "Full-corpus (non-LOSO) models for the live-mic smoke test / "
+                "channel-augmentation experiment (plans/channel-augmentation-experiment.md).",
     }
     (out_dir / "training_info.json").write_text(json.dumps(training_info, indent=2), encoding="utf-8")
     print(f"\n=== Done. Models in {out_dir} ===")
@@ -87,5 +103,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train full-corpus models for the live-mic smoke test")
     parser.add_argument("--models", nargs="+", default=ALL_MODEL_TYPES, choices=ALL_MODEL_TYPES)
     parser.add_argument("--ctc-epochs", type=int, default=20)
+    parser.add_argument("--channel-aug", action="store_true",
+                        help="Add channel/mic-simulation augmented variants to the training set")
+    parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR,
+                        help="Where to save the trained models")
     args = parser.parse_args()
-    train_full_models(model_types=args.models, ctc_epochs=args.ctc_epochs)
+    train_full_models(model_types=args.models, ctc_epochs=args.ctc_epochs,
+                      out_dir=args.out_dir, channel_aug=args.channel_aug)
