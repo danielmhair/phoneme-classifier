@@ -40,6 +40,12 @@ import soundfile as sf
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+# Phoneme names/guides contain IPA characters; don't depend on PYTHONUTF8=1
+# being set for an interactive tool (Windows consoles default to cp1252).
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
 from evaluation.harness.embeddings_cache import _load_backbone  # noqa: E402
 from workflows.shared.ctc_decode import ctc_predict  # noqa: E402
 
@@ -62,7 +68,9 @@ class LiveMicScorer:
         from workflows.ctc_w2v2_workflow.models.ctc_model import create_ctc_model
 
         self.torch = torch
-        self.canonical_labels = json.loads((models_dir / "canonical_labels.json").read_text())
+        self.canonical_labels = json.loads(
+            (models_dir / "canonical_labels.json").read_text(encoding="utf-8")
+        )
 
         with open(models_dir / "mlp_control.pkl", "rb") as f:
             mlp_bundle = pickle.load(f)
@@ -185,7 +193,9 @@ def write_outputs(rows, session_dir, session_name):
         }
         print(f"{model_type}: top-1 {top1:.2%}, top-3 {top3:.2%} "
               f"(LOSO Chloe baseline top-1: {baseline:.2%})")
-    (session_dir / "summary.json").write_text(json.dumps(summary, indent=2))
+    (session_dir / "summary.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     print(f"\nWrote {session_dir / 'predictions.csv'} and summary.json")
     print("Context: a live-mic top-1 far below the LOSO baseline on a known adult "
           "speaker suggests a recording-conditions / pipeline gap (the historical "

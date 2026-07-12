@@ -42,7 +42,7 @@ def train_full_models(model_types=ALL_MODEL_TYPES, ctc_epochs: int = 20, out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
     (out_dir / "canonical_labels.json").write_text(
-        json.dumps(canonical_labels, ensure_ascii=False, indent=2)
+        json.dumps(canonical_labels, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
     base_models_needed = sorted({MODEL_BASE_EMBEDDING[m] for m in model_types})
@@ -69,7 +69,7 @@ def train_full_models(model_types=ALL_MODEL_TYPES, ctc_epochs: int = 20, out_dir
             )
         print(f"Saved {out_path} ({time.time() - start:.0f}s)")
 
-    (out_dir / "training_info.json").write_text(json.dumps({
+    training_info = {
         "trained_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "num_files": len(manifest),
         "speakers": sorted(manifest["speaker"].unique().tolist()),
@@ -78,7 +78,8 @@ def train_full_models(model_types=ALL_MODEL_TYPES, ctc_epochs: int = 20, out_dir
         "augmentation": False,
         "note": "Full-corpus (non-LOSO) models for the live-mic smoke test; "
                 "comparable to the no-augmentation LOSO baseline settings.",
-    }, indent=2))
+    }
+    (out_dir / "training_info.json").write_text(json.dumps(training_info, indent=2), encoding="utf-8")
     print(f"\n=== Done. Models in {out_dir} ===")
 
 
