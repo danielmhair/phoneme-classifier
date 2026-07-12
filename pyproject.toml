@@ -296,6 +296,18 @@ help = "Run comprehensive model analysis (comparison + ensemble)"
 sequence = ["compare-models", "create-ensemble"]
 
 # =============================================================================
+# EVALUATION FOUNDATION: LIVE-MIC SMOKE TEST (PRD 5.4)
+# =============================================================================
+
+[tool.poe.tasks.live-mic-train]
+help = "Train full-corpus models (all 5 speakers, from harness embedding caches) for the live-mic smoke test"
+cmd = "python -m evaluation.harness.full_train"
+
+[tool.poe.tasks.live-mic]
+help = "Live-mic smoke test: record fresh clips and score them against all three models (pass --speaker <name>)"
+cmd = "python evaluation/live_mic_smoke.py"
+
+# =============================================================================
 # EPIC 2: TEMPORAL BRAIN CLI TASKS
 # =============================================================================
 

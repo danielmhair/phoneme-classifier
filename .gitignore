@@ -24,6 +24,10 @@ logs
 # (evaluation/harness/*.py) is NOT covered by this and stays tracked.
 evaluation/harness_cache/
 evaluation/loso_results/
+# Full-corpus models + recorded live-mic sessions (regenerable via
+# `poe live-mic-train`; sessions are personal audio, like recordings/)
+evaluation/full_models/
+evaluation/live_mic_sessions/
 
 # Windows Zone.Identifier files
 *.Zone.Identifier

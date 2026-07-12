@@ -49,8 +49,10 @@ def extract_embedding_onnx(audio_np):
     print("wav2vec output count:", len(outputs))
     print("wav2vec output shape:", outputs[0].shape)
 
-    embedding = outputs[0]  # [1, T, H]
-    # embedding = last_hidden.mean(axis=1)  # [1, H]
+    # Verified 2026-07-12 (PRD 5.4): wav2vec2.onnx has mean-pooling baked into
+    # the graph itself - its output is already [1, 768], exactly what the MLP
+    # head expects. No pooling needed here; the commented-out mean was stale.
+    embedding = outputs[0]  # [1, 768]
     print("embedding shape (before cast):", embedding.shape)
     return embedding.astype(np.float32)
 
