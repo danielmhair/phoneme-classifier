@@ -87,6 +87,36 @@ severity, mixing ratio control (e.g. 1-2 channel variants per file instead of
 robustness candidate and comparing it head-to-head with WavLM on a fresh
 child-voice session when data exists.
 
+## Follow-up runs (2026-07-13, approved by Daniel, complete)
+
+Run A = all 4 variants, 20 CTC epochs (kills the epochs confound). Run B =
+mild dose (cheapmic+clip only), 8 epochs (tests the severity hypothesis).
+Models in `evaluation/full_models_channel_e20/` and `..._channel_mild/`
+(replay summaries stored alongside each). CTC top-1, all configs:
+
+| Config | W2V2 good | W2V2 bad | WavLM good | WavLM bad |
+|---|---|---|---|---|
+| baseline (no aug, 20 ep) | 56.76% | 32.43% | 65.77% | **44.14%** |
+| channel 8 ep, all variants | 63.96% | **39.64%** | 64.86% | 37.84% |
+| channel 20 ep, all variants (A) | **70.27%** | 38.74% | 61.26% | 30.63% |
+| channel 8 ep, mild dose (B) | 62.16% | 36.94% | 65.77% | 42.34% |
+
+Findings:
+- **Wav2Vec2-CTC + channel aug at 20 epochs is the new best good-mic model
+  overall: 70.27%** (+13.5 over its baseline, +4.5 over baseline WavLM, with
+  86.5% top-3). Its bad-mic stays ~+6-7 over its own baseline.
+- **The epochs confound is dead, and the severity hypothesis is confirmed as
+  a monotonic dose-response for WavLM**: more channel-aug training hurts it
+  more (20 ep: 30.63% bad mic, its worst), milder dose hurts less (42.34%),
+  zero dose is best (44.14%). Channel augmentation as implemented is simply
+  bad for WavLM, at every dose - consistent with its pretraining already
+  covering degraded speech.
+- **Best-per-condition is now split across models**: good mic ->
+  w2v2+channel-e20 (70.27%), bad mic -> baseline WavLM (44.14%). No single
+  config dominates. A two-model combination (differently-trained, likely
+  decorrelated errors) is a plausible future experiment, as is deciding by
+  deployment channel quality.
+
 ## Environment gotchas (hard-won, see docs/codebase-map.md)
 
 - Windows-native Poetry, Python 3.9.13, CPU only. `PYTHONUTF8=1` for poe tasks.
