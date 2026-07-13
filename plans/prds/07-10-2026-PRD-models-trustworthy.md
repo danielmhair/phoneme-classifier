@@ -1,6 +1,6 @@
 # PRD: Evaluation Foundation — Making Model Accuracy Trustworthy
 
-**Status:** Core deliverables COMPLETE - declared by Daniel 2026-07-12: the "harness done" bar (§6) and the live-mic smoke test (§5.4) are met. The 85% ship bar on Chloe is NOT met by any model (best honest number: WavLM-CTC 57.90% LOSO / 65.77% live good-mic) - per §6, the conclusion is "needs more target-age-band data," now being pursued via the data-collection game epic. Follow-up lever in flight separately: channel-augmentation experiment (see plans/channel-augmentation-experiment.md).
+**Status:** Core deliverables COMPLETE - declared by Daniel 2026-07-12: the "harness done" bar (§6) and the live-mic smoke test (§5.4) are met. The 85% ship bar on Chloe is NOT met by any model (best honest number: WavLM-CTC 57.90% LOSO / 65.77% live good-mic) - per §6, the conclusion is "needs more target-age-band data," now being pursued via the data-collection game epic. Follow-up lever tried: channel-augmentation experiment complete 2026-07-12 - criterion not met (baseline WavLM-CTC still best overall; Wav2Vec2-CTC gained +7.2 on both mics but WavLM-CTC regressed), full results and follow-up options in plans/channel-augmentation-experiment.md.
 **Owner:** Daniel Hair
 **Last updated:** 2026-07-12
 **Source Context**: [Grill Me Session](./07-10-2026-PRD-models-trustworthy-grill-me)

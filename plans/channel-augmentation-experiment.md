@@ -54,6 +54,39 @@ trained no-aug/20 CTC epochs - per-model numbers in each session's `summary.json
    If it works, propose promoting the transforms into
    `workflows/shared/s0b_augment_audio.py` (production) and the LOSO harness.
 
+## Results (2026-07-12, run complete)
+
+Models trained on 30,165 rows (6,033 originals + 24,132 channel variants),
+8 CTC epochs, saved to `evaluation/full_models_channel_aug/`. Both sessions
+re-scored (per-clip results in each session dir's `*_channel_aug.*` files):
+
+| Model | Good mic: baseline → channel-aug | Bad mic: baseline → channel-aug |
+|---|---|---|
+| MLP Control | 36.94% → 38.74% (+1.8) | 16.22% → 17.12% (+0.9) |
+| Wav2Vec2 CTC | 56.76% → **63.96%** (+7.2) | 32.43% → **39.64%** (+7.2) |
+| WavLM CTC | 65.77% → 64.86% (-0.9) | 44.14% → **37.84%** (**-6.3**) |
+
+**Honest verdict: the success criterion was NOT met.** The overall best
+configuration is still the baseline (no-channel-aug) WavLM-CTC at 44.14%
+bad-mic / 65.77% good-mic - no channel-augmented model beats it on either
+condition. Within-model, though, the result is genuinely informative:
+
+- **Wav2Vec2-CTC gained +7.2 on BOTH mics** - the transforms do teach channel
+  robustness to a model that lacks it, and w2v2+channel-aug nearly closes the
+  gap to WavLM on the good mic (63.96 vs 64.86).
+- **WavLM-CTC regressed, hardest on the bad mic (-6.3).** Plausible
+  explanation: WavLM's pretraining already includes simulated noisy/overlapped
+  speech (its headline advantage), so crude channel simulation may distort its
+  input distribution more than it teaches robustness. An epochs confound (8 vs
+  the baseline's 20) can't be fully excluded, though the same tradeoff helped
+  WavLM in the earlier augmented LOSO pilot.
+
+Possible follow-ups (not started, user's call): milder/probabilistic transform
+severity, mixing ratio control (e.g. 1-2 channel variants per file instead of
+4), WavLM-specific run at higher epochs, or accepting w2v2+channel-aug as the
+robustness candidate and comparing it head-to-head with WavLM on a fresh
+child-voice session when data exists.
+
 ## Environment gotchas (hard-won, see docs/codebase-map.md)
 
 - Windows-native Poetry, Python 3.9.13, CPU only. `PYTHONUTF8=1` for poe tasks.
