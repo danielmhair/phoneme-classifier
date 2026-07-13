@@ -37,7 +37,7 @@ ALL_MODEL_TYPES = ["mlp_control", "wav2vec2_ctc", "wavlm_ctc"]
 
 
 def train_full_models(model_types=ALL_MODEL_TYPES, ctc_epochs: int = 20, out_dir: Path = DEFAULT_OUT_DIR,
-                      channel_aug: bool = False):
+                      channel_aug: bool = False, channel_variants=None):
     import torch
 
     manifest = build_manifest()
@@ -56,6 +56,12 @@ def train_full_models(model_types=ALL_MODEL_TYPES, ctc_epochs: int = 20, out_dir
         from evaluation.harness.channel_augmentation import build_channel_augmented_manifest
 
         channel_manifest = build_channel_augmented_manifest(manifest)
+        if channel_variants:
+            suffixes = tuple(f"_ch_{label}.wav" for label in channel_variants)
+            channel_manifest = channel_manifest[
+                channel_manifest["file_id"].str.endswith(suffixes)
+            ].reset_index(drop=True)
+            print(f"Restricted to channel variants {channel_variants}")
         print(f"Channel-augmented manifest: {len(channel_manifest)} synthetic training rows")
         for bm in base_models_needed:
             aug_index = extract_embeddings(channel_manifest, bm)
@@ -92,6 +98,7 @@ def train_full_models(model_types=ALL_MODEL_TYPES, ctc_epochs: int = 20, out_dir
         "num_classes": len(canonical_labels),
         "ctc_epochs": ctc_epochs,
         "augmentation": "channel" if channel_aug else False,
+        "channel_variants": channel_variants or ("all" if channel_aug else None),
         "note": "Full-corpus (non-LOSO) models for the live-mic smoke test / "
                 "channel-augmentation experiment (plans/channel-augmentation-experiment.md).",
     }
@@ -105,8 +112,12 @@ if __name__ == "__main__":
     parser.add_argument("--ctc-epochs", type=int, default=20)
     parser.add_argument("--channel-aug", action="store_true",
                         help="Add channel/mic-simulation augmented variants to the training set")
+    parser.add_argument("--channel-variants", nargs="+", default=None,
+                        choices=["tel", "cheapmic", "clip", "8k"],
+                        help="Restrict channel augmentation to these variant types (default: all)")
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR,
                         help="Where to save the trained models")
     args = parser.parse_args()
     train_full_models(model_types=args.models, ctc_epochs=args.ctc_epochs,
-                      out_dir=args.out_dir, channel_aug=args.channel_aug)
+                      out_dir=args.out_dir, channel_aug=args.channel_aug,
+                      channel_variants=args.channel_variants)
