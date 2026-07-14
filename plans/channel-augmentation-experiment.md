@@ -117,6 +117,34 @@ Findings:
   decorrelated errors) is a plausible future experiment, as is deciding by
   deployment channel quality.
 
+## Two-model pairing evaluation (2026-07-13) - DECISION: adopt the fused pair
+
+Paired the two per-condition winners (w2v2+channel@20ep + baseline WavLM) and
+scored both sessions with deployable combiners. Unlike the earlier 3-model
+ensemble (which failed - same training data, correlated errors, MLP score
+pollution), this pair is trained on different distributions and shares CTC
+score semantics:
+
+| Strategy | Good mic top-1 | Bad mic top-1 | Good top-3 | Bad top-3 |
+|---|---|---|---|---|
+| best single per condition | 70.27% | 44.14% | 86.49% | 70.27% |
+| probability-average fusion | **78.38%** | **52.25%** | **93.69%** | 70.27% |
+| max-confidence pick | 78.38% | 51.35% | 86.49% | 71.17% |
+| oracle (upper bound) | 85.59% | 57.66% | 98.20% | 80.18% |
+
+**Fusion beats the best single model by ~+8 top-1 on BOTH conditions** - the
+new best live numbers are 78.38% good mic / 52.25% bad mic (vs 65.77 / 44.14
+when the sessions were first scored). Good-mic known-target top-3 is 93.69%.
+
+Decision (as the accuracy-maximizing path): the working configuration is the
+fused pair - extract both backbones' embeddings, run both CTC heads, average
+the two probability vectors. Inference cost is ~2x a single model (both
+backbones), the MLP is not part of the configuration. Caveats: (1) all of
+this selection was done on one adult speaker's two sessions (n=111 each) -
+MUST be re-validated on child data when the data-collection game delivers it;
+(2) production promotion (s0b_augment_audio.py, UE5 runtime) intentionally
+deferred until that validation.
+
 ## Environment gotchas (hard-won, see docs/codebase-map.md)
 
 - Windows-native Poetry, Python 3.9.13, CPU only. `PYTHONUTF8=1` for poe tasks.
