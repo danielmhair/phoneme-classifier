@@ -79,3 +79,13 @@ Built to implement PRD §5.3. One fit/predict interface for all three models:
 - `loso_runner.py` - orchestrates the 5-speaker rotation, persists the actual held-out file list per fold (`split_manifest.json` - not just a `random_state`), per-sample predictions with the known-target rank/confidence-margin metric (`predictions.csv`), and a summary with the Chloe headline number and bug-floor flags (`summary.json`).
 
 Results land in `evaluation/loso_results/<run_id>/`.
+
+Around the harness sit the full-corpus tools (non-LOSO, same code paths):
+
+- `evaluation/harness/full_train.py` (`poe live-mic-train`) - trains all three models on the full 5-speaker corpus from the embedding caches; `--channel-aug` / `--channel-variants` / `--out-dir` produce the channel-augmented variants (see `evaluation/harness/channel_augmentation.py` and plans/channel-augmentation-experiment.md).
+- `evaluation/live_mic_smoke.py` (`poe live-mic`) - records/replays fresh sessions and scores them against a models dir (PRD §5.4).
+- `evaluation/export_fused_onnx.py` (`poe export-fused-onnx`) - exports the fused pair (w2v2+channel-aug@20ep head + baseline WavLM head + both backbones, preprocessing baked in where the HF processor normalizes) to `evaluation/full_models_fused_onnx/`, then refuses to succeed unless the ONNX chain numerically matches the PyTorch chain on the saved live-mic sessions (222-clip parity replay) and reports a sequential + parallel latency benchmark against the temporal brain's ~150ms budget.
+
+## Game-data ingestion (`game/export_tool/export_verified.py`)
+
+`poe game-export` pulls reviewer-verified (`verified_good`) clips from Supabase into `recordings/<child_code>/<phoneme>/*.wav` + per-child `child_meta.json` (age band, holdout flag) and re-syncs deletions; idempotent, run repeatedly as verdicts land. Structural gate before any byte enters the corpus: parses as audio, 16kHz mono, non-empty frames, atomic write (temp + `os.replace`); failures stay unexported and retry next run. The game client itself uploads 16kHz mono 16-bit PCM WAV (encoded in-browser - `light-haven-sites/apps/src/lib/wav.ts`), so no transcoding happens on this side. `evaluation/harness/dataset.py` picks new children up automatically; `evaluation/harness/holdout.py` keeps signup-flagged holdout children out of every training fold.

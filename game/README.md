@@ -12,6 +12,10 @@ What stays in this repo is everything that touches the training pipeline:
   and re-syncs deletions. Run with `poe game-export`; needs `SUPABASE_URL`
   and `SUPABASE_SECRET_KEY` (sb_secret_..., from Dashboard > Settings > API
   Keys) in the environment. Never commit that key anywhere.
+  It's idempotent — run it whenever new verdicts have landed and it ingests
+  only what's new. Every clip passes a structural gate before entering the
+  corpus (parses as audio, 16kHz mono, non-empty; written atomically); a
+  failing clip is reported, left unexported, and retried next run.
 - `evaluation/harness/holdout.py` + `evaluation/harness/learning_curve.py`
   (D6) — holdout-children split and the learning-curve stopping rule
   (`poe holdout-eval`, `poe learning-curve`).

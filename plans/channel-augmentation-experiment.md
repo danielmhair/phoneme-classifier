@@ -145,6 +145,43 @@ MUST be re-validated on child data when the data-collection game delivers it;
 (2) production promotion (s0b_augment_audio.py, UE5 runtime) intentionally
 deferred until that validation.
 
+## ONNX export + latency check of the fused pair (2026-07-14, complete)
+
+`evaluation/export_fused_onnx.py` (`poe export-fused-onnx`) exports the fused
+pair as four graphs to `evaluation/full_models_fused_onnx/`: both backbones
+(raw 16kHz audio in; w2v2's per-utterance normalization baked into the graph,
+WavLM takes raw audio) and both CTC heads (w2v2 head from
+`full_models_channel_e20`, WavLM head from baseline `full_models`), opset 14,
+~378MB per backbone + 5.3MB per head. The script hard-fails on the repo's
+historical 0-byte-export failure mode and on onnx.checker.
+
+**Correctness: fully verified.** All 222 saved live-mic clips re-scored
+through the pure-ONNX chain: max fused-probability diff vs the PyTorch chain
+4.97e-05, zero top-1 disagreements, and the replay reproduces the pairing-eval
+numbers exactly (good mic 78.38% top-1 / 93.69% top-3; bad mic 52.25% /
+70.27%). Full details in `fused_pair_onnx_report.json` alongside the models.
+
+**Latency vs the temporal brain's ~150ms budget: borderline, honestly OVER
+for most shapes** (onnxruntime CPU, 16-core desktop; both sequential and
+two-thread-parallel branch execution measured, multiple runs):
+
+| Clip length | Sequential mean | Parallel mean | Within 150ms? |
+|---|---|---|---|
+| 0.5s frame | 140-154ms | 118-126ms | marginal (p95 ~160-174ms) |
+| 1.0s frame | 173-210ms | 137-166ms | no (borderline once, over once) |
+| 3.0s clip | 313-331ms | 255-265ms | no |
+
+The two backbones dominate (~75ms each at 0.5s; the CTC heads are 1-6ms), so
+the fused pair costs ~2x a single model as expected. Honest read: **the fused
+pair does not comfortably fit real-time temporal-brain streaming on this
+hardware** (and consumer devices will be slower). It is comfortably fast
+enough for the known-target game-scoring shape (~0.3s per 3s clip, not
+latency-critical). Options if real-time fusion is wanted later: single-model
+WavLM for streaming (~half the cost) with fused rescoring on utterance end,
+0.5s hop windows (marginal), quantization, or accepting a bigger budget.
+Decision deferred - like the fused pair itself, it should be made after
+re-validation on child data.
+
 ## Environment gotchas (hard-won, see docs/codebase-map.md)
 
 - Windows-native Poetry, Python 3.9.13, CPU only. `PYTHONUTF8=1` for poe tasks.

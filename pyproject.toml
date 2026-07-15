@@ -307,6 +307,10 @@ cmd = "python -m evaluation.harness.full_train"
 help = "Live-mic smoke test: record fresh clips and score them against all three models (pass --speaker <name>)"
 cmd = "python evaluation/live_mic_smoke.py"
 
+[tool.poe.tasks.export-fused-onnx]
+help = "Export the fused pair (w2v2+channel-aug@20ep + baseline WavLM) to ONNX with parity replay + latency benchmark"
+cmd = "python evaluation/export_fused_onnx.py"
+
 # =============================================================================
 # DATA COLLECTION GAME (PRD 07-12-2026): EXPORT + LEARNING CURVE
 # =============================================================================

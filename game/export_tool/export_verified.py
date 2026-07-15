@@ -37,11 +37,13 @@ The game app itself lives in the light-haven-sites repo (apps/); this tool
 stays here because it writes into this repo's recordings/ and runs in the
 Poetry environment.
 
-Requires only `requests` (already in the Poetry environment via transformers).
+Requires `requests` and `soundfile` (both already in the Poetry environment).
 """
 import argparse
+import io
 import json
 import os
+import re
 import shutil
 import sys
 from collections import Counter
@@ -50,6 +52,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import requests
+import soundfile
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RECORDINGS_DIR = REPO_ROOT / "recordings"
@@ -171,9 +174,42 @@ def final_label(clip: dict, verdicts: List[dict]) -> Optional[str]:
     return top[0][0]
 
 
+def audio_problem(data: bytes) -> Optional[str]:
+    """Structural gate before a clip enters recordings/: must parse as audio,
+    be 16kHz mono, and contain actual frames. Content judgments (silence,
+    wrong sound) belong to the reviewers; this only blocks files that would
+    poison the corpus or crash the harness (the base corpus's 54 zero-byte
+    wavs are the cautionary tale - dataset.py/sf.read fails hard on them).
+    The game client uploads 16kHz mono 16-bit PCM WAV (apps/src/lib/wav.ts
+    in light-haven-sites), so anything else here is a real defect upstream."""
+    try:
+        audio, sr = soundfile.read(io.BytesIO(data))
+    except Exception as e:
+        return f"unreadable ({e})"
+    if sr != 16000:
+        return f"sample rate {sr}Hz, expected 16000Hz"
+    if audio.ndim != 1:
+        return f"{audio.shape[1]} channels, expected mono"
+    if len(audio) < 1600:  # < 0.1s: header-only / truncated upload
+        return f"only {len(audio)} samples (<0.1s)"
+    return None
+
+
+def parse_timestamp(iso: str) -> datetime:
+    """Postgres trims trailing zeros from fractional seconds (e.g.
+    '.81194'), but Python 3.9's fromisoformat only accepts exactly 3 or 6
+    fractional digits - normalize to 6 before parsing."""
+    iso = iso.replace("Z", "+00:00")
+    m = re.match(r"^(.*?)\.(\d+)([+-]\d{2}:\d{2})?$", iso)
+    if m:
+        frac = (m.group(2) + "000000")[:6]
+        iso = f"{m.group(1)}.{frac}{m.group(3) or ''}"
+    return datetime.fromisoformat(iso)
+
+
 def export_filename(child_code: str, phoneme: str, recorded_at: str, take: int) -> str:
     # 2026-07-14T19:22:31.123456+00:00 -> 20260714_192231
-    ts = datetime.fromisoformat(recorded_at.replace("Z", "+00:00"))
+    ts = parse_timestamp(recorded_at)
     stamp = ts.strftime("%Y%m%d_%H%M%S")
     ipa = PHONEME_IPA[phoneme]
     return f"{child_code}_{phoneme}_ep-{ipa}_{stamp}_{take}.wav"
@@ -257,8 +293,22 @@ def main() -> int:
 
         print(f"[export] {out_path.relative_to(recordings_dir)}")
         if not args.dry_run:
+            data = sb.download("clips", clip["storage_path"])
+            problem = audio_problem(data)
+            if problem:
+                # Not ingested and exported_at stays unset, so the clip is
+                # retried on the next run once the upstream defect is fixed.
+                print(f"[warn] clip {clip['id']} ({clip['storage_path']}): "
+                      f"{problem} - NOT ingested")
+                stats["invalid_audio"] += 1
+                continue
             out_dir.mkdir(parents=True, exist_ok=True)
-            out_path.write_bytes(sb.download("clips", clip["storage_path"]))
+            # temp file + os.replace: a crash mid-write must not leave a
+            # truncated wav in the corpus (observed once on NTFS with a
+            # plain write - see evaluation/harness/embeddings_cache.py)
+            tmp_path = out_path.with_suffix(".wav.tmp")
+            tmp_path.write_bytes(data)
+            os.replace(tmp_path, out_path)
             sb.patch("clips", f"id=eq.{clip['id']}",
                      {"exported_at": datetime.utcnow().isoformat() + "Z"})
         stats["exported"] += 1
@@ -297,6 +347,11 @@ def main() -> int:
           f"({holdout_n} holdout)")
     if args.dry_run:
         print("  (dry run: nothing was written)")
+    elif stats["exported"]:
+        print("\nNew clips ingested. The harness picks them up automatically "
+              "(dataset.py scans recordings/); typical next steps:")
+        print("  poetry run poe holdout-eval      # holdout-children accuracy")
+        print("  poetry run poe learning-curve    # accuracy vs N children, per age band")
     return 0
 
 

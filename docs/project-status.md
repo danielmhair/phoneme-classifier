@@ -1,6 +1,6 @@
 # Project Status: Where We've Been, Where We're Going
 
-**Last updated:** 2026-07-13 (keep this in sync as milestones land; completion of any item is declared by Daniel, per CLAUDE.md)
+**Last updated:** 2026-07-14 (keep this in sync as milestones land; completion of any item is declared by Daniel, per CLAUDE.md)
 
 The one-paragraph version: this project went from *"we have accuracy numbers nobody can trust"* to *"we have honest numbers, they predict live reality, and the best configuration scores 78% top-1 / 94% known-target top-3 on a fresh good-mic session."* The remaining gap to the 85% ship bar cannot be closed by modeling tricks on the current data - it needs recordings of the children the product is actually for, which is what the data-collection game exists to gather. That's where we are going.
 
@@ -64,7 +64,7 @@ The Phoneme Hatchery: a web game + parent onboarding + reviewer app (lives in th
 
 - **Wave 1 target: ~20 families**, children ages 4-8 (the product's band; 9-15 phased later), ~2 short sessions per child, device diversity welcomed - home mics are exactly the channel variety the models need.
 - **Label quality is the top data risk**: verified-good clips only, via the reviewer flow (the base corpus's 192 misnamed + 54 zero-byte files are the cautionary tale).
-- Training-side plumbing already landed in this repo: [game/export_tool/export_verified.py](../game/export_tool/export_verified.py) pulls verified clips into `recordings/<child_code>/` with age-band metadata.
+- Training-side plumbing already landed in this repo: [game/export_tool/export_verified.py](../game/export_tool/export_verified.py) (`poe game-export`) is the ingestion pipeline - reviewed-verified clips move into `recordings/<child_code>/` with age-band metadata as verdicts land (idempotent, re-runnable), with a structural audio gate (16kHz mono, non-empty, atomic writes) so nothing malformed can enter the corpus.
 
 ### 2. Holdout discipline + the learning-curve stopping rule (tooling landed)
 
@@ -77,8 +77,8 @@ The first real question the child data answers: does the fused-pair advantage (a
 
 ### 4. Production promotion (deferred until validation passes)
 
-- Promote channel transforms into the production augmentation ([workflows/shared/s0b_augment_audio.py](../workflows/shared/s0b_augment_audio.py)).
-- Promote fusion into the inference path; **ONNX-export the fused pair and check latency** against the temporal brain's ~150ms budget on consumer hardware (two backbones per clip; also the repo's historical 0-byte-export failure mode has never been exercised for these checkpoints). This is the one open engineering-readiness item.
+- **The ONNX-export/latency readiness check is done (2026-07-14)**: the fused pair exports cleanly (the historical 0-byte failure mode is exercised and closed), and the pure-ONNX chain matches PyTorch on all 222 saved live-mic clips exactly. Latency is the honest catch - ~2x a single model, marginal at 0.5s real-time frames and over the ~150ms temporal-brain budget beyond that, though comfortably fast for the game's per-clip scoring (~0.3s per clip). Artifacts + full report in `evaluation/full_models_fused_onnx/`; details in the [channel-augmentation experiment doc](../plans/channel-augmentation-experiment.md).
+- Still deferred until child-data validation: promote channel transforms into the production augmentation ([workflows/shared/s0b_augment_audio.py](../workflows/shared/s0b_augment_audio.py)), promote fusion into the inference path, and decide the real-time shape (single-model WavLM streaming with fused end-of-utterance rescoring vs 0.5s hops vs quantization).
 - Then the downstream epics unlock in order: temporal-brain tuning on real signal, Whisper distillation, GOP scoring - all were deliberately blocked on trustworthy numbers.
 
 ### The bar that ends this chapter
