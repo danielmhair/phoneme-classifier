@@ -29,5 +29,9 @@ evaluation/loso_results/
 evaluation/full_models*/
 evaluation/live_mic_sessions/
 
+# The Phoneme Hatchery app lives in its own repo, colocated here for dev
+# convenience (see game/README.md) - never part of this repo's history
+light-haven-sites/
+
 # Windows Zone.Identifier files
 *.Zone.Identifier

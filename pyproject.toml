@@ -308,6 +308,22 @@ help = "Live-mic smoke test: record fresh clips and score them against all three
 cmd = "python evaluation/live_mic_smoke.py"
 
 # =============================================================================
+# DATA COLLECTION GAME (PRD 07-12-2026): EXPORT + LEARNING CURVE
+# =============================================================================
+
+[tool.poe.tasks.game-export]
+help = "Export verified_good clips from Supabase into recordings/ (+ deletion re-sync); needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"
+cmd = "python game/export_tool/export_verified.py"
+
+[tool.poe.tasks.learning-curve]
+help = "Learning curve: holdout-children accuracy vs N ingested training children, per age band (PRD 8 stopping rule)"
+cmd = "python -m evaluation.harness.learning_curve"
+
+[tool.poe.tasks.holdout-eval]
+help = "Single holdout-children evaluation using all non-holdout collected children"
+cmd = "python -m evaluation.harness.learning_curve --all-children"
+
+# =============================================================================
 # EPIC 2: TEMPORAL BRAIN CLI TASKS
 # =============================================================================
 
