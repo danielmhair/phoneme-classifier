@@ -1,5 +1,7 @@
 # Phoneme Classifier - Epic 1 & 2: Live Phoneme CTCs + Temporal Brain
 
+> **📍 Start here: [docs/project-status.md](docs/project-status.md)** - where the project has been (the trust crisis → honest evaluation → the fused-pair configuration at 78% live top-1) and where it's going (the data-collection game, the learning-curve stopping rule, and the 85% ship bar on real children).
+
 AI-powered phoneme classification system for children's speech recognition featuring **three-way model comparison** and **real-time temporal stabilization**:
 
 - **Epic 1**: Traditional MLP, Wav2Vec2 CTC, and advanced WavLM CTC sequence modeling with comprehensive performance analysis
