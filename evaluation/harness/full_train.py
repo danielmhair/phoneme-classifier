@@ -40,7 +40,17 @@ def train_full_models(model_types=ALL_MODEL_TYPES, ctc_epochs: int = 20, out_dir
                       channel_aug: bool = False, channel_variants=None):
     import torch
 
+    from evaluation.harness.holdout import split_by_holdout
+
     manifest = build_manifest()
+    # Holdout discipline (docs/project-status.md, data-collection PRD 8):
+    # children flagged holdout at signup must never enter ANY training run,
+    # including these full-corpus models - they are what the live-mic /
+    # fused-pair numbers are scored with, and what holdout-eval tests against.
+    manifest, holdout_manifest = split_by_holdout(manifest)
+    if len(holdout_manifest):
+        print(f"Excluding {len(holdout_manifest)} clips from "
+              f"{holdout_manifest['speaker'].nunique()} holdout children (never trained on)")
     canonical_labels = canonical_phoneme_labels(manifest)
     out_dir.mkdir(parents=True, exist_ok=True)
 
