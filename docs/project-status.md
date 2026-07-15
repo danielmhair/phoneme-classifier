@@ -64,7 +64,15 @@ The Phoneme Hatchery: a web game + parent onboarding + reviewer app (lives in th
 
 - **Wave 1 target: ~20 families**, children ages 4-8 (the product's band; 9-15 phased later), ~2 short sessions per child, device diversity welcomed - home mics are exactly the channel variety the models need.
 - **Label quality is the top data risk**: verified-good clips only, via the reviewer flow (the base corpus's 192 misnamed + 54 zero-byte files are the cautionary tale).
-- Training-side plumbing already landed in this repo: [game/export_tool/export_verified.py](../game/export_tool/export_verified.py) (`poe game-export`) is the ingestion pipeline - reviewed-verified clips move into `recordings/<child_code>/` with age-band metadata as verdicts land (idempotent, re-runnable), with a structural audio gate (16kHz mono, non-empty, atomic writes) so nothing malformed can enter the corpus.
+- Training-side plumbing already landed in this repo: [game/export_tool/export_verified.py](../game/export_tool/export_verified.py) (`poe game-export`) is the ingestion pipeline - reviewed-verified clips move into `recordings/<child_code>/` with age-band metadata as verdicts land (idempotent, re-runnable), with a structural audio gate (16kHz mono, non-empty, atomic writes) so nothing malformed can enter the corpus. Proven end-to-end 2026-07-14 with a test child (game -> review -> export -> harness manifest + holdout split all correct; test child then removed).
+
+**Before wave-1 families (the remaining checklist - training-repo side is done, all of these are app/ops items):**
+
+1. Record the reference prompt WAVs the game plays per phoneme (app README §3).
+2. Seed golden clips (a few known-good/known-bad clips flagged `is_golden` with `golden_expected_verdict`) - reviewer reliability stats are meaningless without them; currently a manual-SQL step per the app README.
+3. Device smoke-test on real family hardware (iOS Safari mic permissions / AudioWorklet support - PRD §12).
+4. Solve the single-reviewer stall: confusion-pair phonemes (dh, th, s, sh, m, n - 6 of 37) require TWO distinct ordinary reviewers before export; with only one reviewer they wait forever (the adjudication queue only surfaces *disagreements*). Either onboard a second reviewer or add an admin path to adjudicate single-reviewed confusion clips directly.
+5. Tombstone the test child (child_002) in the DB so `poe game-export` doesn't re-ingest it once real collection starts.
 
 ### 2. Holdout discipline + the learning-curve stopping rule (tooling landed)
 
@@ -74,6 +82,19 @@ The Phoneme Hatchery: a web game + parent onboarding + reviewer app (lives in th
 ### 3. Re-validate the fused pair on child data (the pre-registered test)
 
 The first real question the child data answers: does the fused-pair advantage (and channel augmentation's w2v2 boost) hold on target-age voices? Model selection stops until this data exists - further tuning against the existing adult sessions would be overfitting to one voice.
+
+**The retrain → replay loop** (run whenever a meaningful batch of new children has been ingested; all with `PYTHONUTF8=1`):
+
+```bash
+poetry run poe game-export        # 1. ingest newly verified clips
+poetry run python -m evaluation.harness.full_train                # 2. retrain baseline models (WavLM half; holdout children auto-excluded)
+poetry run python -m evaluation.harness.full_train --channel-aug --ctc-epochs 20 --out-dir evaluation/full_models_channel_e20   # 3. retrain the w2v2+channel half
+poetry run poe live-mic --replay evaluation/live_mic_sessions/<session> --models-dir <models dir>   # 4. per-model numbers on the saved good/bad-mic sessions
+poetry run poe export-fused-onnx  # 5. fused-pair headline numbers on both sessions (+ ONNX parity)
+poetry run poe holdout-eval       # 6. the number that decides anything: held-out children
+```
+
+Steps 4-5 replay the saved adult sessions (robustness trend; copy each session's `summary.json` aside first to keep a before/after trail). Step 6 is the pre-registered test itself and needs holdout-flagged children to exist.
 
 ### 4. Production promotion (deferred until validation passes)
 
