@@ -15,11 +15,13 @@ Also handles deletion re-sync (PRD 6.3): children tombstoned in the DB get
 their exported directory removed from recordings/ (and optionally their
 storage objects purged with --purge-storage). Consent records are retained.
 
-Verdict resolution (PRD 7):
+Verdict resolution (PRD 7, amended for single-reviewer operation 2026-07-14):
   - golden clips are reviewer-reliability seeds, never exported
   - an adjudication verdict (Daniel) always wins
-  - confusion-pair phonemes (dh, th, s, sh, m, n) need two independent
-    ordinary verdicts that agree; disagreement waits for adjudication
+  - confusion-pair phonemes (dh, th, s, sh, m, n): when two or more distinct
+    reviewers have judged, their verdicts must agree (disagreement waits for
+    adjudication); with a single reviewer they resolve by majority like any
+    other phoneme (the stricter rule re-arms if a second reviewer joins)
   - other phonemes need one ordinary verdict (majority if several)
   - only a final label of verified_good is exported; wrong_sound and
     unusable clips are kept in Supabase, tagged, and excluded from training
@@ -160,12 +162,16 @@ def final_label(clip: dict, verdicts: List[dict]) -> Optional[str]:
         return None
 
     if clip["phoneme"] in CONFUSION_PHONEMES:
-        if len({v["reviewer_id"] for v in ordinary}) < 2:
-            return None  # second independent review still pending
-        labels = {v["verdict"] for v in ordinary}
-        if len(labels) > 1:
-            return None  # disagreement -> waits for adjudication
-        return labels.pop()
+        if len({v["reviewer_id"] for v in ordinary}) >= 2:
+            labels = {v["verdict"] for v in ordinary}
+            if len(labels) > 1:
+                return None  # disagreement -> waits for adjudication
+            return labels.pop()
+        # Single-reviewer operation (decided by Daniel 2026-07-14): with one
+        # distinct reviewer, confusion-pair phonemes resolve by the same
+        # majority rule as everything else instead of waiting forever for a
+        # second reviewer that doesn't exist. The two-review agreement rule
+        # above re-arms automatically if a second reviewer is ever onboarded.
 
     counts = Counter(v["verdict"] for v in ordinary)
     top = counts.most_common()
@@ -273,10 +279,15 @@ def main() -> int:
             stats["unknown_phoneme"] += 1
             continue
 
-        label = final_label(clip, verdicts_by_clip.get(clip["id"], []))
+        clip_verdicts = verdicts_by_clip.get(clip["id"], [])
+        label = final_label(clip, clip_verdicts)
         if label is None:
             stats["review_pending"] += 1
             continue
+        if (clip["phoneme"] in CONFUSION_PHONEMES
+                and not any(v["is_adjudication"] for v in clip_verdicts)
+                and len({v["reviewer_id"] for v in clip_verdicts}) == 1):
+            stats["confusion_resolved_single_review"] += 1
         if label != "verified_good":
             stats[f"excluded_{label}"] += 1
             continue

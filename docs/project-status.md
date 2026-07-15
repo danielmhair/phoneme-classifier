@@ -71,7 +71,7 @@ The Phoneme Hatchery: a web game + parent onboarding + reviewer app (lives in th
 1. Record the reference prompt WAVs the game plays per phoneme (app README §3).
 2. Seed golden clips (a few known-good/known-bad clips flagged `is_golden` with `golden_expected_verdict`) - reviewer reliability stats are meaningless without them; currently a manual-SQL step per the app README.
 3. Device smoke-test on real family hardware (iOS Safari mic permissions / AudioWorklet support - PRD §12).
-4. Solve the single-reviewer stall: confusion-pair phonemes (dh, th, s, sh, m, n - 6 of 37) require TWO distinct ordinary reviewers before export; with only one reviewer they wait forever (the adjudication queue only surfaces *disagreements*). Either onboard a second reviewer or add an admin path to adjudicate single-reviewed confusion clips directly.
+4. ~~Solve the single-reviewer stall~~ **Resolved 2026-07-14 (Daniel's call: one reviewer)**: with a single distinct reviewer, confusion-pair phonemes (dh, th, s, sh, m, n) now resolve by the same majority rule as other phonemes; the stricter two-review agreement rule re-arms automatically if a second reviewer is ever onboarded. Exports report `confusion_resolved_single_review` for transparency. Golden clips (item 2) are now the *only* reviewer-reliability check, which makes seeding them matter more.
 5. Tombstone the test child (child_002) in the DB so `poe game-export` doesn't re-ingest it once real collection starts.
 
 ### 2. Holdout discipline + the learning-curve stopping rule (tooling landed)
