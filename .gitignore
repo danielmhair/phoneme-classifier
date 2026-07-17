@@ -35,3 +35,5 @@ light-haven-sites/
 
 # Windows Zone.Identifier files
 *.Zone.Identifier
+# playwright-cli session artifacts
+.playwright-cli/
